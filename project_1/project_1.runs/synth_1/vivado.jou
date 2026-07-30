@@ -1,0 +1,13 @@
+#-----------------------------------------------------------
+# Vivado v2022.1 (64-bit)
+# SW Build 3526262 on Mon Apr 18 15:48:16 MDT 2022
+# IP Build 3524634 on Mon Apr 18 20:55:01 MDT 2022
+# Start of session at: Thu May 28 16:06:59 2026
+# Process ID: 13704
+# Current directory: C:/Users/Caile/Documents/ISL_Router/project_1/project_1.runs/synth_1
+# Command line: vivado.exe -log router_core.vds -product Vivado -mode batch -messageDb vivado.pb -notrace -source router_core.tcl
+# Log file: C:/Users/Caile/Documents/ISL_Router/project_1/project_1.runs/synth_1/router_core.vds
+# Journal file: C:/Users/Caile/Documents/ISL_Router/project_1/project_1.runs/synth_1\vivado.jou
+# Running On: Cailean_Laptop, OS: Windows, CPU Frequency: 1996 MHz, CPU Physical cores: 16, Host memory: 16279 MB
+#-----------------------------------------------------------
+source router_core.tcl -notrace
