@@ -1,0 +1,9 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1786505390" />
+    <testcase name="drive_single_l3_packet_with_one_byte_payload_test" classname="link_adapter_tx_coco_tb" file="/mnt/c/Users/Caile/Documents/ISL_ROUTER/cocotb/LINK_ADAPTER/link_adapter_tx_coco_tb.py" lineno="213" time="0.008285999298095703" sim_time_ns="100.0" ratio_time="12068.550382689762" />
+    <testcase name="drive_single_l3_packet_with_max_payload_test" classname="link_adapter_tx_coco_tb" file="/mnt/c/Users/Caile/Documents/ISL_ROUTER/cocotb/LINK_ADAPTER/link_adapter_tx_coco_tb.py" lineno="223" time="0.017661571502685547" sim_time_ns="1345.0" ratio_time="76154.03871594806" />
+    <testcase name="drive_single_l3_packet_with_random_payload_test" classname="link_adapter_tx_coco_tb" file="/mnt/c/Users/Caile/Documents/ISL_ROUTER/cocotb/LINK_ADAPTER/link_adapter_tx_coco_tb.py" lineno="233" time="0.00950932502746582" sim_time_ns="690.0" ratio_time="72560.35502068447" />
+    <testcase name="drive_ring_buffer_to_hold_max_l3_packets_with_random_payload_test" classname="link_adapter_tx_coco_tb" file="/mnt/c/Users/Caile/Documents/ISL_ROUTER/cocotb/LINK_ADAPTER/link_adapter_tx_coco_tb.py" lineno="248" time="0.060022592544555664" sim_time_ns="5920.0" ratio_time="98629.52846639365" />
+  </testsuite>
+</testsuites>
