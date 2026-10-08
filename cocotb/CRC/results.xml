@@ -1,7 +1,0 @@
-<testsuites name="results">
-  <testsuite name="all" package="all">
-    <property name="random_seed" value="1786505344" />
-    <testcase name="crc_random_frame_correctness_test" classname="crc_coco_tb" file="/mnt/c/Users/Caile/Documents/ISL_ROUTER/cocotb/CRC/crc_coco_tb.py" lineno="26" time="0.7301599979400635" sim_time_ns="13257.5" ratio_time="18156.979343434625" />
-    <testcase name="crc_test_enable_gating" classname="crc_coco_tb" file="/mnt/c/Users/Caile/Documents/ISL_ROUTER/cocotb/CRC/crc_coco_tb.py" lineno="62" time="0.01173257827758789" sim_time_ns="1322.5" ratio_time="112720.32188579557" />
-  </testsuite>
-</testsuites>
