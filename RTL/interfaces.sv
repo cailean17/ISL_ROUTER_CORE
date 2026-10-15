@@ -20,17 +20,59 @@
 //////////////////////////////////////////////////////////////////////////////////
 import packets_and_frames::*;
 
-interface link_adapter_if;
-    logic [(L3_MAX_SIZE_BYTES << 3)-1: 0] l3_packet;
-    logic axi_valid;
-    logic axi_ready;
-    modport slave (input l3_packet, input axi_valid, output axi_ready);
-    modport master (output l3_packet, output axi_valid, input axi_ready);
-endinterface
-
 interface laser_link_phy_if;
     logic [7:0] data;
     modport slave(input data);
     modport master(output data);
 endinterface
 
+interface link_adapter_rx_if;
+    logic [7:0] l3_packet_byte;
+    logic       s_axis_tready;
+    logic [7:0] s_axis_tdata;
+    logic       s_axis_tvalid;
+    logic       s_axis_tlast;
+    logic       s_axis_tuser;
+endinterface
+
+interface link_adapter_tx_if;
+    // router->TX
+    logic s_axis_router_cmd_tvalid;
+    l3_packet_descriptor_t s_axis_router_cmd_tdata;
+    logic s_axis_router_cmd_tready;
+    // TX<->L3 buffer
+    // (command) TX->L3 buffer
+    logic m_axis_tx_cmd_tready;
+    l3_packet_descriptor_t m_axis_tx_cmd_tdata;
+    logic m_axis_tx_cmd_tvalid;
+    // (data) L3 buffer -> TX
+    logic [7:0] s_axis_tx_tdata;
+    logic       s_axis_tx_tvalid;
+    logic       s_axis_tx_tlast;
+    logic       s_axis_tx_tready;
+endinterface
+
+
+interface l3_buffer_if;
+    // RX->buffer
+    logic [7:0] s_axis_rx_tdata;
+    logic       s_axis_rx_tvalid;
+    logic       s_axis_rx_tlast;
+    logic       s_axis_rx_tuser;
+    logic       s_axis_rx_tready;
+    // buffer->router
+    l3_packet_descriptor_t m_axis_pkt_desc_tdata;
+    logic m_axis_pkt_desc_tvalid;
+    logic m_axis_pkt_desc_tready;
+   // TX<->buffer
+   // (command) TX->buffer
+    l3_packet_descriptor_t s_axis_tx_cmd_tdata;
+    logic s_axis_tx_cmd_tvalid;
+    logic s_axis_tx_cmd_tready;
+   // (data) buffer->TX
+    logic [7:0] m_axis_tx_tdata;
+    logic m_axis_tx_tvalid;
+    logic m_axis_tx_tlast;
+    logic m_axis_tx_tready;
+
+endinterface

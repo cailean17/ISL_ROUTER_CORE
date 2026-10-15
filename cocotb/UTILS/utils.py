@@ -1,3 +1,5 @@
+import random
+
 from cocotb.triggers import RisingEdge
 
 from CONSTANTS.constants import (
@@ -7,8 +9,10 @@ from CONSTANTS.constants import (
     L3_LENGTH_W,
     L3_SRC_SAT_SIZE_BYTES,
     L3_TTL_SIZE_BYTES,
+    NUM_LINKS,
     RX_L3_BUFFER_PTR_W,
     RX_L3_DESC_ID_W,
+    clog2,
 )
 
 
@@ -28,6 +32,16 @@ def assert_with_message(name, actual, expected):
     assert actual == expected, (
         f"{name}: actual: {hex(actual)}, expected: {hex(expected)}"
     )
+
+
+def set_packed_bit(signal, bit_idx, value):
+    """Sets a single bit in a packed vector"""
+    current_val = signal.value.to_unsigned()
+    if value:
+        current_val |= 1 << bit_idx  # Set bit to 1
+    else:
+        current_val &= ~(1 << bit_idx)  # Clear bit to 0
+    signal.value = current_val
 
 
 def generate_l3_packet(src_sat, dest_sat, ttl, payload_length, seed_byte=0x00):
@@ -71,27 +85,27 @@ def generate_l3_packet(src_sat, dest_sat, ttl, payload_length, seed_byte=0x00):
     return l3_packet, len(l3_packet) & 0xFFFF
 
 
-# must match l3_packet_descriptor_t's declaration order (MSB first)
-DESC_FIELDS = [
+PACKET_DESC_FIELDS = [
     ("start_ptr", RX_L3_BUFFER_PTR_W),
-    ("desc_id", RX_L3_DESC_ID_W),
     ("length", L3_LENGTH_W),
     ("dest_sat", 8 * L3_DEST_SAT_SIZE_BYTES),
+    ("desc_id", RX_L3_DESC_ID_W),
+    ("buffer_id", clog2(NUM_LINKS)),
 ]
-DESC_WIDTH = sum(w for _, w in DESC_FIELDS)
+PACKET_DESC_WIDTH = sum(w for _, w in PACKET_DESC_FIELDS)
 
 
-def pack_desc(**fields):
-    """Build the packed descriptor int. Unspecified fields default to 0."""
+def pack_desc(crv=False, **fields):
+    """Build the packet descriptor int. Unspecified fields default to constrained random generation"""
     value = 0
-    for name, width in DESC_FIELDS:
-        v = fields.get(name, 0)
+    for name, width in PACKET_DESC_FIELDS:
+        v = fields.get(name, random.randint(0, (1 << width) - 1))
         assert 0 <= v < (1 << width), f"{name}={v} doesn't fit in {width} bits"
         value = (value << width) | v
-    unknown = set(fields) - {n for n, _ in DESC_FIELDS}
+    unknown = set(fields) - {n for n, _ in PACKET_DESC_FIELDS}
     assert not unknown, f"unknown descriptor fields: {unknown}"
     return value
 
 
 def desc_hex(**fields):
-    return f"0x{pack_desc(**fields):0{(DESC_WIDTH + 3) // 4}X}"
+    return f"0x{pack_desc(**fields):0{(PACKET_DESC_WIDTH + 3) // 4}X}"

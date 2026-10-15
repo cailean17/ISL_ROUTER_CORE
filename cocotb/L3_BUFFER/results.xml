@@ -1,0 +1,9 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1791949742" />
+    <testcase name="ingest_one_valid_random_payload_l3_packet" classname="l3_buffer_coco_tb" file="/mnt/c/Users/Caile/Documents/ISL_Router/cocotb/L3_BUFFER/l3_buffer_coco_tb.py" lineno="148" time="0.05147600173950195" sim_time_ns="2427.5" ratio_time="47157.897233055126" />
+    <testcase name="ingest_one_valid_max_payload_l3_packet" classname="l3_buffer_coco_tb" file="/mnt/c/Users/Caile/Documents/ISL_Router/cocotb/L3_BUFFER/l3_buffer_coco_tb.py" lineno="193" time="0.10881543159484863" sim_time_ns="7542.5" ratio_time="69314.61732452537" />
+    <testcase name="sequential_ingest_and_service_scoreboard" classname="l3_buffer_coco_tb" file="/mnt/c/Users/Caile/Documents/ISL_Router/cocotb/L3_BUFFER/l3_buffer_coco_tb.py" lineno="233" time="6.599053859710693" sim_time_ns="1225637.5" ratio_time="185729.27665932593" />
+    <testcase name="constrained_random_ingest_and_service_scoreboard" classname="l3_buffer_coco_tb" file="/mnt/c/Users/Caile/Documents/ISL_Router/cocotb/L3_BUFFER/l3_buffer_coco_tb.py" lineno="469" time="10.001084804534912" sim_time_ns="931915.0" ratio_time="93181.39164037791" />
+  </testsuite>
+</testsuites>

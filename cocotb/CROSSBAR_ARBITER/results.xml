@@ -1,0 +1,7 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1792034128" />
+    <testcase name="single_request_arbitration_test" classname="crossbar_arbiter_coco_tb" file="/mnt/c/Users/Caile/Documents/ISL_Router/cocotb/CROSSBAR_ARBITER/crossbar_arbiter_coco_tb.py" lineno="86" time="0.0010521411895751953" sim_time_ns="27.5" ratio_time="26137.17652390664" />
+    <testcase name="max_request_arbitration_test" classname="crossbar_arbiter_coco_tb" file="/mnt/c/Users/Caile/Documents/ISL_Router/cocotb/CROSSBAR_ARBITER/crossbar_arbiter_coco_tb.py" lineno="104" time="0.6370658874511719" sim_time_ns="3692.5" ratio_time="5796.10378256678" />
+  </testsuite>
+</testsuites>

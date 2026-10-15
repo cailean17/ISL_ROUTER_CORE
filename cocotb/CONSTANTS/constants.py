@@ -3,6 +3,8 @@ def clog2(n):
     return (n - 1).bit_length()
 
 
+NUM_LINKS = 4
+
 # L3 PACKET
 L3_SRC_SAT_SIZE_BYTES = 1
 L3_DEST_SAT_SIZE_BYTES = 1

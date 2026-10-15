@@ -11,7 +11,7 @@
 // Tool Versions: 
 // Description: 
 // 
-// Dependencies: 
+// Dependencies:
 // 
 // Revision:
 // Revision 0.01 - File Created
@@ -19,66 +19,59 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
+import packets_and_frames::*;
 
-module crossbar_arbiter #(parameter uint NUM_LINKS = 4)(
+module crossbar_arbiter #(parameter int NUM_LINKS = 4)(
     input clk,
     input reset, 
     input [NUM_LINKS-1: 0] request_matrix,
-    link_adapter_if.slave link_adapter_ingress [NUM_LINKS-1: 0],
-    link_adapter_if.master link_adapter_egress,
+    l3_buffer_if l3_buffers [NUM_LINKS],
+    link_adapter_tx_if link_adapter_egress,
     output reg grant_active, 
     output reg [$clog2(NUM_LINKS)-1: 0] granted_idx
 );
-
 reg [$clog2(NUM_LINKS)-1: 0] rr_ptr;
 reg [$clog2(NUM_LINKS)-1:0] idx;
-reg [$clog2(NUM_LINKS): 0] grants;
 
-// priority encoder NUM LINKS to clog(NUM_LINKS)
+// priority encoder
 always @(*) begin
     granted_idx = rr_ptr;
     grant_active = 0;
-    for(int i = NUM_LINKS -1; i >= 0; i--) begin
-        idx = (i[$clog2(NUM_LINKS)-1:0] + rr_ptr);
-        if(request_matrix[idx] && link_adapter_egress.axi_ready) begin
+    for(int i = NUM_LINKS-1; i >= 0; i--) begin
+        idx = (i + rr_ptr) % NUM_LINKS;
+        if(request_matrix[idx]) begin
             // dont grant any new requests unless the request_matrix for the ingress is high AND the egress link (tx) is ready to accept.
             grant_active = 1;
             granted_idx = idx;
         end
     end
-    link_adapter_egress.axi_valid = grant_active; // grant has been made, data on AXI bus will be valid 
+    link_adapter_egress.s_axis_router_cmd_tvalid = grant_active; // grant has been made, data on AXI bus will be valid 
 end
 
-// // drive axi_ready signal of granted ingress link 
-// generate
-//     for (genvar k = 0; k < NUM_LINKS; k++) begin : DEMUX
-//          always @(*) begin
-//             link_adapter_ingress[k].axi_ready = ((granted_idx==k && !reset)) ? link_adapter_egress.axi_ready : 0;
-//          end
-//     end
-// endgenerate
-
-// drive l3 data signal of egress link
-// intermediate mux wires - one per ingress link 
-wire [(L3_MAX_SIZE_BYTES<<3)-1:0] mux_inputs [NUM_LINKS-1:0];
+// drive winning l3 packet descriptor to link_adapter_tx egress
+// update l3 packet descriptor buffer_id field to map to specific src buffer
+// intermediate mux wires - one per ingress link (to overcome runtim interface indexing rules) 
+l3_packet_descriptor_t mux_inputs [NUM_LINKS-1:0];
 generate
     for (genvar i = 0; i < NUM_LINKS; i++) begin : mux_gen
-        assign mux_inputs[i] = link_adapter_ingress[i].l3_packet;
+        assign mux_inputs[i] = '{
+            start_ptr: l3_buffers[i].m_axis_pkt_desc_tdata.start_ptr,
+            length: l3_buffers[i].m_axis_pkt_desc_tdata.length,
+            dest_sat: l3_buffers[i].m_axis_pkt_desc_tdata.dest_sat,
+            desc_id: l3_buffers[i].m_axis_pkt_desc_tdata.desc_id,
+            buffer_id: i
+        };
     end
 endgenerate
-assign link_adapter_egress.l3_packet = grant_active ? mux_inputs[granted_idx] : '0;
+assign link_adapter_egress.s_axis_router_cmd_tdata = grant_active ? mux_inputs[granted_idx] : '0;
 
-
+wire axi_handshake_complete = link_adapter_egress.s_axis_router_cmd_tready && link_adapter_egress.s_axis_router_cmd_tvalid;
 always @(posedge clk) begin
     if(reset) begin
         rr_ptr <= 0;
-        // grants <= 0;
     end else begin
-        if(link_adapter_egress.axi_ready && link_adapter_egress.axi_valid) begin
+        if(axi_handshake_complete) begin
             rr_ptr <= granted_idx + 1;
-        end
-        if(grant_active) begin
-            grants[idx] <= 1;
         end
     end
 end

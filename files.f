@@ -1,0 +1,8 @@
+./RTL/packets_and_frames.sv
+./RTL/interfaces.sv
+./RTL/CRC.sv
+./RTL/l3_buffer.sv
+./RTL/link_adapter_rx.sv
+./RTL/link_adapter_tx.sv
+./RTL/crossbar_arbiter.sv
+./RTL/router_core.sv

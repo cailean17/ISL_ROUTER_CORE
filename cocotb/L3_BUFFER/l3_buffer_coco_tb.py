@@ -47,7 +47,7 @@ async def reset_dut(dut):
     assert_with_message("dut.descriptor_rd", dut.descriptor_rd.value, 0)
     assert_with_message("dut.servicing_buffer_read", dut.servicing_buffer_read.value, 0)
     assert_with_message("dut.pkt_buffer_rd_ptr", dut.pkt_buffer_rd_ptr.value, 0)
-    assert_with_message("dut.s_axis_tx_tvalid", dut.s_axis_tx_tvalid.value, 0)
+    assert_with_message("dut.m_axis_tx_tvalid", dut.m_axis_tx_tvalid.value, 0)
     assert_with_message(
         "dut.pkt_desc_buffer_wr_ptr", dut.pkt_desc_buffer_wr_ptr.value, 0
     )
@@ -124,13 +124,13 @@ async def collect_and_verify_tx_packet(dut, l3_packet, l3_packet_len):
     clock_cycles_waiting = 0
     byte_index = 0
     await FallingEdge(dut.clk)
-    dut.s_axis_tx_tready.value = 1
-    while dut.s_axis_tx_tlast != 0 and clock_cycles_waiting < max_clock_cycle_wait:
+    dut.m_axis_tx_tready.value = 1
+    while dut.m_axis_tx_tlast != 0 and clock_cycles_waiting < max_clock_cycle_wait:
         await RisingEdge(dut.clk)
-        if dut.s_axis_tx_tvalid.value == 1:
+        if dut.m_axis_tx_tvalid.value == 1:
             clock_cycles_waiting = 0
             assert_with_message(
-                "dut.s_axis_tx_tdata", dut.s_axis_tx_tdata.value, l3_packet[byte_index]
+                "dut.m_axis_tx_tdata", dut.m_axis_tx_tdata.value, l3_packet[byte_index]
             )
             byte_index += 1
         else:

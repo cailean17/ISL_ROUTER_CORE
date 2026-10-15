@@ -4,6 +4,8 @@ package packets_and_frames;
     // L3 DEFINITIONS
     // ============================================================
     // [Reserved(2047:2040), Payload(2039:40), Length(39:24), TTL(23:16), DestSat(15:8), SrcSat(7:0)]
+
+    parameter int NUM_LINKS                     = 4;
     parameter int L3_SRC_SAT_SIZE_BYTES         = 1;
     parameter int L3_DEST_SAT_SIZE_BYTES        = 1;
     parameter int L3_TTL_SIZE_BYTES             = 1;
@@ -37,12 +39,13 @@ package packets_and_frames;
     // ============================================================
     parameter int RX_L3_BUFFER_DEPTH_BYTES = 16384;
     parameter int RX_L3_DESC_BUFFER_DEPTH = 64; // PACKETS
-    // [Start_Ptr, L3PacketLength, DestSat(7:0)
+    // [Start_Ptr, Desc_id, L3PacketLength, DestSat(7:0)
     typedef struct packed {
         logic [$clog2(RX_L3_BUFFER_DEPTH_BYTES)-1:0] start_ptr;
-        logic [$clog2(RX_L3_DESC_BUFFER_DEPTH)-1:0] desc_id;
         logic [$clog2(L3_MAX_SIZE_BYTES+1)-1:0] length;
         logic [(8*L3_DEST_SAT_SIZE_BYTES)-1:0] dest_sat;
+        logic [$clog2(RX_L3_DESC_BUFFER_DEPTH)-1:0] desc_id;
+        logic [$clog2(NUM_LINKS)-1:0] buffer_id;
     } l3_packet_descriptor_t;
 
     // ============================================================

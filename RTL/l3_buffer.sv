@@ -12,24 +12,24 @@ module l3_buffer
     input  logic       s_axis_rx_tuser,   // meaningful on tlast: 1 = bad frame (CRC fail, timeout, bad length)
     output logic       s_axis_rx_tready,   // tied to 1'b1: the PHY can't be stalled
     // buffer<->router
-    output l3_packet_descriptor_t m_axis_pkt_desc_tdata,
+    output packets_and_frames::l3_packet_descriptor_t m_axis_pkt_desc_tdata,
     output logic m_axis_pkt_desc_tvalid,
     input  logic m_axis_pkt_desc_tready,
    // TX<->buffer
    // (command) TX->buffer
-    input  l3_packet_descriptor_t s_axis_tx_cmd_tdata,
+    input  packets_and_frames::l3_packet_descriptor_t s_axis_tx_cmd_tdata,
     input  logic s_axis_tx_cmd_tvalid,
     output logic s_axis_tx_cmd_tready,
    // (data) buffer->TX
-    output logic [7:0] s_axis_tx_tdata,
-    output logic s_axis_tx_tvalid,
-    output logic s_axis_tx_tlast,
-    input  logic s_axis_tx_tready
+    output logic [7:0] m_axis_tx_tdata,
+    output logic m_axis_tx_tvalid,
+    output logic m_axis_tx_tlast,
+    input  logic m_axis_tx_tready
 );
 
-// BRAM PACKET DESCRIPTOR BUFFER
+// DRAM PACKET DESCRIPTOR BUFFER
 // out-of-order servicing, in-order retirement
-(* ram_style = "distributed" *) l3_packet_descriptor_t pkt_desc_buffer [RX_L3_DESC_BUFFER_DEPTH];
+(* ram_style = "distributed" *) packets_and_frames::l3_packet_descriptor_t pkt_desc_buffer [RX_L3_DESC_BUFFER_DEPTH];
 reg [$clog2(RX_L3_DESC_BUFFER_DEPTH)-1:0] pkt_desc_buffer_wr_ptr;
 reg [$clog2(RX_L3_DESC_BUFFER_DEPTH)-1:0] pkt_desc_buffer_rd_ptr;
 reg [$clog2(RX_L3_DESC_BUFFER_DEPTH)-1:0] pkt_desc_buffer_retire_ptr;
@@ -46,12 +46,14 @@ reg [$clog2(RX_L3_BUFFER_DEPTH_BYTES)-1:0] pkt_buffer_prev_wr_ptr;
 reg [$clog2(L3_MAX_SIZE_BYTES):0] pkt_buffer_curr_pkt_len_bytes;
 reg [$clog2(RX_L3_BUFFER_DEPTH_BYTES):0] pkt_buffer_bytes_used;
 reg [$clog2(RX_L3_BUFFER_DEPTH_BYTES):0] pkt_buffer_bytes_free;
-l3_packet_descriptor_t descriptor_wr;
+packets_and_frames::l3_packet_descriptor_t descriptor_wr;
 reg [(L3_DEST_SAT_SIZE_BYTES*8)-1:0] dest_sat_wr;
 assign descriptor_wr = '{start_ptr: pkt_buffer_prev_wr_ptr,
-                           desc_id: pkt_desc_buffer_wr_ptr,
                            length: pkt_buffer_curr_pkt_len_bytes+1,
-                           dest_sat: dest_sat_wr};
+                           dest_sat: dest_sat_wr,
+                           desc_id: pkt_desc_buffer_wr_ptr,
+                           buffer_id: '0
+                           };
 
 // Auxillary
 always_comb begin
@@ -117,26 +119,26 @@ end
 
 // BRAM Packet Buffer Reading Logic
 reg servicing_buffer_read;
-l3_packet_descriptor_t descriptor_rd;
+packets_and_frames::l3_packet_descriptor_t descriptor_rd;
 assign s_axis_tx_cmd_tready = !servicing_buffer_read;
 wire on_last_byte_read;
 assign on_last_byte_read = (pkt_buffer_rd_ptr == (descriptor_rd.start_ptr + descriptor_rd.length - 1) % RX_L3_BUFFER_DEPTH_BYTES);
-wire read_done = s_axis_tx_tvalid && s_axis_tx_tready && on_last_byte_read;
-assign s_axis_tx_tlast = on_last_byte_read;
+wire read_done = m_axis_tx_tvalid && m_axis_tx_tready && on_last_byte_read;
+assign m_axis_tx_tlast = on_last_byte_read;
 always_ff @(posedge clk) begin
     if(reset) begin
         descriptor_rd <= 0;
         servicing_buffer_read <= 0;
         pkt_buffer_rd_ptr <= 0;
-        s_axis_tx_tvalid <= 0;
+        m_axis_tx_tvalid <= 0;
     end else begin
-        s_axis_tx_tvalid <= servicing_buffer_read && !read_done;
-        if(!servicing_buffer_read && s_axis_tx_cmd_tvalid) begin
+        m_axis_tx_tvalid <= servicing_buffer_read && !read_done;
+        if(s_axis_tx_cmd_tready && s_axis_tx_cmd_tvalid) begin
                 servicing_buffer_read <= 1;
                 descriptor_rd <= s_axis_tx_cmd_tdata;
                 pkt_buffer_rd_ptr <= s_axis_tx_cmd_tdata.start_ptr;
         end else begin
-            if(s_axis_tx_tvalid && s_axis_tx_tready) begin
+            if(m_axis_tx_tvalid && m_axis_tx_tready) begin
                 pkt_buffer_rd_ptr <= pkt_buffer_rd_ptr+1;
                 if (on_last_byte_read) begin
                     servicing_buffer_read <= 0;
@@ -153,9 +155,9 @@ reg [$clog2(RX_L3_BUFFER_DEPTH_BYTES)-1:0] pkt_buffer_port_a_addr;
 reg [7:0] pkt_buffer_port_a_data;
 reg pkt_buffer_port_a_en;
 always_comb begin
-    pkt_buffer_port_a_addr = (s_axis_tx_tready && s_axis_tx_tvalid) ? pkt_buffer_rd_ptr + 1 : pkt_buffer_rd_ptr;
+    pkt_buffer_port_a_addr = (m_axis_tx_tready && m_axis_tx_tvalid) ? pkt_buffer_rd_ptr + 1 : pkt_buffer_rd_ptr;
     pkt_buffer_port_a_en = servicing_buffer_read;
-    s_axis_tx_tdata = pkt_buffer_port_a_data;
+    m_axis_tx_tdata = pkt_buffer_port_a_data;
 end
 always_ff @(posedge clk) begin
     if(pkt_buffer_port_a_en) begin
@@ -179,19 +181,11 @@ always_ff @(posedge clk) begin
 end
 
 // BRAM PACKET DESCRIPTOR BUFFER LOGIC
-
 assign m_axis_pkt_desc_tdata = pkt_desc_buffer[pkt_desc_buffer_rd_ptr];
 assign m_axis_pkt_desc_tvalid = (pending_cnt != 0);
 
-reg pkt_desc_buffer_rd;
-always_comb begin
-    pkt_desc_buffer_rd = m_axis_pkt_desc_tready && m_axis_pkt_desc_tvalid;
-end
-
-reg pkt_desc_buffer_wr;
-always_comb begin
-    pkt_desc_buffer_wr = commit;
-end
+wire pkt_desc_buffer_rd = m_axis_pkt_desc_tready & m_axis_pkt_desc_tvalid;
+wire pkt_desc_buffer_wr = commit;
 
 always_ff @(posedge clk) begin
     if(reset) begin

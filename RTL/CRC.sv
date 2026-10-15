@@ -5,7 +5,7 @@ module CRC #(parameter int POLY = 32'hEDB88320, parameter int MESSAGE_SLICE_SIZE
     input reset,
     input enable,
     input clk,
-    output reg [31:0] CRC_REG
+    output reg [31:0] crc_output
 );
 
 reg [31:0] PRECOMPUTED_CRC [(1 << MESSAGE_SLICE_SIZE_BITS)];
@@ -18,11 +18,9 @@ end
 always @(posedge clk) begin
     if(reset) begin
         // new packet CRC calculation
-        CRC_REG <= 32'hFFFFFFFF;
+        crc_output <= 32'hFFFFFFFF;
     end else if (enable) begin
-        CRC_REG <= {8'h00, CRC_REG[31:8]} ^ PRECOMPUTED_CRC[CRC_REG[7:0] ^ message];
-    end else begin
-        CRC_REG <= CRC_REG;
+        crc_output <= {8'h00, crc_output[31:8]} ^ PRECOMPUTED_CRC[crc_output[7:0] ^ message];
     end
 end
 endmodule
