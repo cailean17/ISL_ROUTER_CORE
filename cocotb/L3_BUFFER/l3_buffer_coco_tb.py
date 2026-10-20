@@ -12,8 +12,8 @@ from cocotb.clock import Clock
 from cocotb.triggers import (
     FallingEdge,
     ReadOnly,
+    ReadWrite,
     RisingEdge,
-    Timer,
 )
 
 from CONSTANTS.constants import (
@@ -65,6 +65,7 @@ async def reset_dut(dut):
     assert_with_message("dut.unretired_cnt", dut.unretired_cnt.value, 0)
     assert_with_message("dut.pending_cnt", dut.pending_cnt.value, 0)
     await FallingEdge(dut.clk)
+    await ReadWrite()
     dut.reset.value = 0
 
 
@@ -76,6 +77,7 @@ async def drive_link_adapter_rx_to_l3_buffer_axi_master(
     payload_dropped = False
     for i in range(n):
         await FallingEdge(clk)
+        await ReadWrite()
         axi_data.value = payload[i]
         axi_valid.value = 1
         axi_last.value = 0
@@ -88,6 +90,7 @@ async def drive_link_adapter_rx_to_l3_buffer_axi_master(
                 dut_commit.value
             )  # dut raises commit flag on successful packet ingestion
     await FallingEdge(clk)
+    await ReadWrite()
     axi_valid.value = 0
     axi_last.value = 0
     axi_user.value = 0
@@ -98,6 +101,7 @@ async def drive_tx_to_l3_buffer_axi_master(
     clk, axi_data, axi_valid, axi_ready, pkt_desc
 ):
     await FallingEdge(clk)
+    await ReadWrite()
     axi_data.value = pkt_desc
     axi_valid.value = 1
     while True:
@@ -105,17 +109,20 @@ async def drive_tx_to_l3_buffer_axi_master(
         if axi_ready.value == 1:
             break
     await FallingEdge(clk)
+    await ReadWrite()
     axi_valid.value = 0
 
 
 async def drive_l3_buffer_to_router_axi_slave(clk, axi_ready, axi_valid):
     await FallingEdge(clk)
+    await ReadWrite()
     axi_ready.value = 1
     while True:
         await RisingEdge(clk)
         if axi_valid.value == 1:
             break
     await FallingEdge(clk)
+    await ReadWrite()
     axi_ready.value = 0
 
 
@@ -124,6 +131,7 @@ async def collect_and_verify_tx_packet(dut, l3_packet, l3_packet_len):
     clock_cycles_waiting = 0
     byte_index = 0
     await FallingEdge(dut.clk)
+    await ReadWrite()
     dut.m_axis_tx_tready.value = 1
     while dut.m_axis_tx_tlast != 0 and clock_cycles_waiting < max_clock_cycle_wait:
         await RisingEdge(dut.clk)
@@ -182,7 +190,13 @@ async def ingest_one_valid_random_payload_l3_packet(dut):
     assert_with_message(
         "dut.m_axis_pkt_desc_tdata",
         dut.m_axis_pkt_desc_tdata.value,
-        pack_desc(start_ptr=0, desc_id=0, length=l3_packet_len, dest_sat=dest_sat),
+        pack_desc(
+            start_ptr=0,
+            desc_id=0,
+            length=l3_packet_len,
+            buffer_id=0,
+            dest_sat=dest_sat,
+        ),
     )
     assert_with_message(
         "dut.m_axis_pkt_desc_tvalid", dut.m_axis_pkt_desc_tvalid.value, 1
@@ -222,7 +236,9 @@ async def ingest_one_valid_max_payload_l3_packet(dut):
     assert_with_message(
         "dut.m_axis_pkt_desc_tdata",
         dut.m_axis_pkt_desc_tdata.value,
-        pack_desc(start_ptr=0, desc_id=0, length=l3_packet_len, dest_sat=0x03),
+        pack_desc(
+            start_ptr=0, desc_id=0, length=l3_packet_len, buffer_id=0, dest_sat=0x03
+        ),
     )
     assert_with_message(
         "dut.m_axis_pkt_desc_tvalid", dut.m_axis_pkt_desc_tvalid.value, 1
@@ -265,6 +281,7 @@ async def sequential_ingest_and_service_scoreboard(dut):
             start_ptr=total_bytes % RX_L3_BUFFER_DEPTH_BYTES,
             desc_id=i % RX_L3_DESC_BUFFER_DEPTH,
             length=l3_packet_len,
+            buffer_id=0,
             dest_sat=dest_sat,
         )
 
@@ -376,6 +393,7 @@ async def ingest(dut, count, scoreboard: Scoreboard, seed):
             start_ptr=total_bytes % RX_L3_BUFFER_DEPTH_BYTES,
             desc_id=i % RX_L3_DESC_BUFFER_DEPTH,
             length=l3_packet_len,
+            buffer_id=0,
             dest_sat=dest_sat,
         )
 

@@ -1,12 +1,17 @@
 import random
+import zlib
 
 from cocotb.triggers import RisingEdge
 
 from CONSTANTS.constants import (
+    L2_CRC_SIZE_BYTES,
     L2_PAYLOAD_LENGTH_SIZE_BYTES,
+    L2_SOF_VAL,
+    L2_TYPE_FLAGS_SIZE_BYTES,
     L3_DEST_SAT_SIZE_BYTES,
     L3_HEADER_SIZE_BYTES,
     L3_LENGTH_W,
+    L3_PAYLOAD_MAX_SIZE_BYTES,
     L3_SRC_SAT_SIZE_BYTES,
     L3_TTL_SIZE_BYTES,
     NUM_LINKS,
@@ -32,16 +37,6 @@ def assert_with_message(name, actual, expected):
     assert actual == expected, (
         f"{name}: actual: {hex(actual)}, expected: {hex(expected)}"
     )
-
-
-def set_packed_bit(signal, bit_idx, value):
-    """Sets a single bit in a packed vector"""
-    current_val = signal.value.to_unsigned()
-    if value:
-        current_val |= 1 << bit_idx  # Set bit to 1
-    else:
-        current_val &= ~(1 << bit_idx)  # Clear bit to 0
-    signal.value = current_val
 
 
 def generate_l3_packet(src_sat, dest_sat, ttl, payload_length, seed_byte=0x00):
@@ -85,6 +80,33 @@ def generate_l3_packet(src_sat, dest_sat, ttl, payload_length, seed_byte=0x00):
     return l3_packet, len(l3_packet) & 0xFFFF
 
 
+def generate_l2_frame(l3_packet):
+    l2_frame = []
+
+    # Append SOF
+    l2_frame.append(L2_SOF_VAL)
+
+    # Append EMPTY FLAGS
+    for i in range(0, L2_TYPE_FLAGS_SIZE_BYTES):
+        l2_frame.append(0x00)
+
+    # Append L3 Packet Size
+    l2_frame = l2_frame + list(
+        len(l3_packet).to_bytes(L2_PAYLOAD_LENGTH_SIZE_BYTES, byteorder="little")
+    )
+
+    # Append L3 Packet
+    l2_frame += l3_packet
+
+    #  (DUT excludes SOF byte from CRC calculation)
+    expected_crc = zlib.crc32(bytes(l2_frame[1:])).to_bytes(L2_CRC_SIZE_BYTES, "little")
+
+    # Append CRC
+    l2_frame = l2_frame + list(expected_crc)
+
+    return l2_frame
+
+
 PACKET_DESC_FIELDS = [
     ("start_ptr", RX_L3_BUFFER_PTR_W),
     ("length", L3_LENGTH_W),
@@ -95,7 +117,7 @@ PACKET_DESC_FIELDS = [
 PACKET_DESC_WIDTH = sum(w for _, w in PACKET_DESC_FIELDS)
 
 
-def pack_desc(crv=False, **fields):
+def pack_desc(**fields):
     """Build the packet descriptor int. Unspecified fields default to constrained random generation"""
     value = 0
     for name, width in PACKET_DESC_FIELDS:
@@ -105,6 +127,42 @@ def pack_desc(crv=False, **fields):
     unknown = set(fields) - {n for n, _ in PACKET_DESC_FIELDS}
     assert not unknown, f"unknown descriptor fields: {unknown}"
     return value
+
+
+def unpack_desc(value):
+    """Inverse of pack_desc: packed descriptor int -> {field: int}."""
+    value = int(value)  # accepts an int or a cocotb signal value
+    fields = {}
+    shift = sum(width for _, width in PACKET_DESC_FIELDS)
+    for name, width in PACKET_DESC_FIELDS:  # same MSB-first order pack_desc uses
+        shift -= width
+        fields[name] = (value >> shift) & ((1 << width) - 1)
+    return fields
+
+
+def generate_l3_packet_and_desc_pair(l3_packet_payload_length=None, src_sat=None):
+    """Unspecified fields default to constrained random generation"""
+    l3_packet_payload_length = (
+        l3_packet_payload_length
+        if l3_packet_payload_length is not None
+        else random.randint(1, L3_PAYLOAD_MAX_SIZE_BYTES)
+    )
+    l3_packet_desc = (
+        pack_desc(length=l3_packet_payload_length + L3_HEADER_SIZE_BYTES)
+        if l3_packet_payload_length
+        else pack_desc()
+    )
+
+    l3_packet, l3_packet_size = generate_l3_packet(
+        src_sat=src_sat
+        if src_sat
+        else random.randint(0, 1 << (L3_SRC_SAT_SIZE_BYTES * 8) - 1),
+        dest_sat=unpack_desc(l3_packet_desc)["dest_sat"],
+        ttl=random.randint(0, 1 << (L3_TTL_SIZE_BYTES * 8) - 1),
+        payload_length=l3_packet_payload_length,
+        seed_byte=random.randint(0, 0xFF),
+    )
+    return l3_packet_desc, l3_packet
 
 
 def desc_hex(**fields):

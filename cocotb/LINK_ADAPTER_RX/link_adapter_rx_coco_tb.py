@@ -10,16 +10,13 @@ from CONSTANTS.constants import (
     L2_SOF_VAL,
     L2_TYPE_FLAGS_SIZE_BYTES,
     LINK_ADAPTER_RX_ACQUIRE_LENGTH,
-    LINK_ADAPTER_RX_COMMIT,
     LINK_ADAPTER_RX_CRC,
     LINK_ADAPTER_RX_DISASSEMBLE,
     LINK_ADAPTER_RX_RECONSTRUCT,
     LINK_ADAPTER_RX_STALL,
     TEST_CLK_PERIOD_US,
 )
-from LINK_ADAPTER_TX.link_adapter_tx_coco_tb import generate_l3_packet
-from UTILS.utils import assert_with_message;
-
+from UTILS.utils import assert_with_message, generate_l2_frame
 
 
 async def reset_dut(dut):
@@ -47,40 +44,6 @@ async def reset_dut(dut):
     )
     await FallingEdge(dut.clk)
     dut.reset.value = 0
-
-
-def generate_l2_frame(
-    src_sat, dest_sat, ttl, desired_l3_payload_length, seed_byte=0x00
-):
-    l2_frame = []
-
-    # Append SOF
-    l2_frame.append(L2_SOF_VAL)
-
-    # Append EMPTY FLAGS
-    for i in range(0, L2_TYPE_FLAGS_SIZE_BYTES):
-        l2_frame.append(0x00)
-
-    # Generate L3 Packet
-    l3_packet, l3_packet_size_bytes = generate_l3_packet(
-        src_sat, dest_sat, ttl, desired_l3_payload_length, seed_byte
-    )
-
-    # Append L3 Packet Size
-    l2_frame = l2_frame + list(
-        l3_packet_size_bytes.to_bytes(L2_PAYLOAD_LENGTH_SIZE_BYTES, byteorder="little")
-    )
-
-    # Append L3 Packet
-    l2_frame += l3_packet
-
-    #  (DUT excludes SOF byte from CRC calculation)
-    expected_crc = zlib.crc32(bytes(l2_frame[1:])).to_bytes(L2_CRC_SIZE_BYTES, "little")
-
-    # Append CRC
-    l2_frame = l2_frame + list(expected_crc)
-
-    return l2_frame
 
 
 async def send_and_verify_L2_frame(dut, l2_frame):
@@ -171,7 +134,9 @@ async def send_and_verify_L2_frame(dut, l2_frame):
         dut.ISERDES_in.value = l2_frame[offset + i]
         await RisingEdge(dut.clk)
         await ReadWrite()
-        assert_with_message("dut.byte_ctr_crc_in.value", dut.byte_ctr_crc_in.value, (i+1)%4)
+        assert_with_message(
+            "dut.byte_ctr_crc_in.value", dut.byte_ctr_crc_in.value, (i + 1) % 4
+        )
     expected_crc = zlib.crc32(bytes(l2_frame[1:])).to_bytes(L2_CRC_SIZE_BYTES, "little")
 
 

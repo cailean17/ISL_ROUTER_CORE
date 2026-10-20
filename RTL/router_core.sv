@@ -3,8 +3,8 @@
 module router_core #(parameter NUM_LINKS = 2, parameter NUM_SATS = 256, parameter SAT_ID = 0, parameter string FIB_FILE = "SAT1_FIB.mem")(
     input clk,
     input reset,
-    laser_link_phy_if.slave laser_link_ingress[NUM_LINKS],
-    laser_link_phy_if.master laser_link_egress[NUM_LINKS]
+    laser_link_phy_if laser_link_ingress[NUM_LINKS],
+    laser_link_phy_if laser_link_egress[NUM_LINKS]
 );
     link_adapter_rx_if link_adapter_ingress[NUM_LINKS-1:0] ();
     link_adapter_tx_if link_adapter_egress[NUM_LINKS-1:0] ();
@@ -122,7 +122,7 @@ module router_core #(parameter NUM_LINKS = 2, parameter NUM_SATS = 256, paramete
 
         // extract egresss packet descriptor interface axi ready signal to use without indexing the interface (because indexing interfaces with runtime variables (int) is illegal in Verilog)
         logic egress_s_axis_router_cmd_tready_signals [NUM_LINKS-1:0];
-        for(genvar l = 0; l < NUM_LINKS; l++) begin : crossbar_arbiter_signal_external_gen
+        for(genvar l = 0; l < NUM_LINKS; l++) begin : crossbar_arbiter_signal_extract
             always @(*) begin
                 egress_s_axis_router_cmd_tready_signals[l] = link_adapter_egress[l].s_axis_router_cmd_tready;
             end
@@ -173,7 +173,7 @@ module router_core #(parameter NUM_LINKS = 2, parameter NUM_SATS = 256, paramete
         logic l3_buffer_m_axis_tx_tvalid_signals [NUM_LINKS-1:0];
         logic l3_buffer_m_axis_tx_tlast_signals [NUM_LINKS-1:0];
         logic l3_buffer_s_axis_tx_cmd_tready_signals [NUM_LINKS-1:0];
-        for(genvar l = 0; l < NUM_LINKS; l++) begin : l3_buffer_arbiter_signal_external_gen
+        for(genvar l = 0; l < NUM_LINKS; l++) begin : l3_buffer_arbiter_signal_extract
             always_comb begin
                 l3_buffer_m_axis_tx_tdata_signals[l] = l3_buffers[l].m_axis_tx_tdata;
                 l3_buffer_m_axis_tx_tvalid_signals[l] = l3_buffers[l].m_axis_tx_tvalid;
@@ -194,6 +194,22 @@ module router_core #(parameter NUM_LINKS = 2, parameter NUM_SATS = 256, paramete
                         link_adapter_egress[m].s_axis_tx_tlast = l3_buffer_m_axis_tx_tlast_signals[i];
                         link_adapter_egress[m].m_axis_tx_cmd_tready = l3_buffer_s_axis_tx_cmd_tready_signals[i];
                     end
+                end
+            end
+        end
+
+        logic link_adapter_egress_s_axis_tx_tready_signals [NUM_LINKS-1:0];
+        for(genvar l = 0; l < NUM_LINKS; l++) begin: link_adapter_egress_signal_extract
+            always_comb begin
+                link_adapter_egress_s_axis_tx_tready_signals[l] = link_adapter_egress[l].s_axis_tx_tready;
+            end
+        end
+
+        for(genvar m = 0; m < NUM_LINKS; m++) begin: demux_link_adapter_egress
+            always_comb begin
+                l3_buffers[m].m_axis_tx_tready = 0;
+                if(l3_buffer_arbiters_grant_active_output[m]) begin
+                    l3_buffers[m].m_axis_tx_tready = link_adapter_egress_s_axis_tx_tready_signals[l3_buffer_arbiters_granted_idx_output[m]];
                 end
             end
         end

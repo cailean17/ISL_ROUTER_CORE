@@ -40,7 +40,6 @@ always @(*) begin
     for(int i = NUM_LINKS-1; i >= 0; i--) begin
         idx = (i + rr_ptr) % NUM_LINKS;
         if(request_matrix[idx]) begin
-            // dont grant any new requests unless the request_matrix for the ingress is high AND the egress link (tx) is ready to accept.
             grant_active = 1;
             granted_idx = idx;
         end
@@ -50,7 +49,7 @@ end
 
 // drive winning l3 packet descriptor to link_adapter_tx egress
 // update l3 packet descriptor buffer_id field to map to specific src buffer
-// intermediate mux wires - one per ingress link (to overcome runtim interface indexing rules) 
+// intermediate mux wires - one per ingress link (to overcome runtime interface indexing rules) 
 l3_packet_descriptor_t mux_inputs [NUM_LINKS-1:0];
 generate
     for (genvar i = 0; i < NUM_LINKS; i++) begin : mux_gen

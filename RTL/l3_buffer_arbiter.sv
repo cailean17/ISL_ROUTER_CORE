@@ -30,6 +30,7 @@ module l3_buffer_arbiter #(parameter int NUM_LINKS = 4)(
     output reg grant_active, 
     output reg [$clog2(NUM_LINKS)-1: 0] granted_idx
 );
+reg [$clog2(NUM_LINKS)-1: 0] latched_granted_idx;
 reg [$clog2(NUM_LINKS)-1: 0] rr_ptr;
 reg servicing_l3_buffer_read;
 
@@ -42,13 +43,15 @@ always_comb begin
         for(int i = NUM_LINKS-1; i >= 0; i--) begin
             idx = (i + rr_ptr) % NUM_LINKS;
             if(request_matrix[idx]) begin
-                // dont grant any new requests unless the request_matrix for the ingress is high AND the egress link (tx) is ready to accept.
                 grant_active = 1;
                 granted_idx = idx;
             end
         end
+    end else begin
+        granted_idx = latched_granted_idx;
+        grant_active = 1;
     end
-    l3_buffer.s_axis_tx_cmd_tvalid = grant_active; // grant has been made, data on AXI bus will be valid 
+    l3_buffer.s_axis_tx_cmd_tvalid = grant_active & ~servicing_l3_buffer_read; // grant has been made, data on AXI bus will be valid 
 end
 
 // drive winning l3 packet descriptor to link_adapter_tx egress
@@ -66,7 +69,9 @@ always @(posedge clk) begin
     if(reset) begin
         rr_ptr <= 0;
         servicing_l3_buffer_read <= 0;
+        latched_granted_idx <= 0;
     end else begin
+        latched_granted_idx <= granted_idx;
         if (axis_tx_cmd_handshake_complete) begin
             servicing_l3_buffer_read <= 1;
         end

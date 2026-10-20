@@ -55,15 +55,20 @@ assign descriptor_wr = '{start_ptr: pkt_buffer_prev_wr_ptr,
                            buffer_id: '0
                            };
 
+localparam logic [$clog2(RX_L3_BUFFER_DEPTH_BYTES):0] UPPER_ROOM_THRESHOLD = RX_L3_BUFFER_DEPTH_BYTES - L3_MAX_SIZE_BYTES;
+
 // Auxillary
 always_comb begin
-    pkt_buffer_bytes_free = RX_L3_BUFFER_DEPTH_BYTES - pkt_buffer_bytes_used - pkt_buffer_curr_pkt_len_bytes;
+    // pkt_buffer_bytes_free = RX_L3_BUFFER_DEPTH_BYTES - pkt_buffer_bytes_used - pkt_buffer_curr_pkt_len_bytes;
     s_axis_rx_tready = 1;
 end
-wire first_beat = pkt_buffer_curr_pkt_len_bytes == 0;
+reg first_beat;
 wire no_desc_space = first_beat && (unretired_cnt == RX_L3_DESC_BUFFER_DEPTH);
-wire no_bytes_left = pkt_buffer_bytes_free == 0;
-wire drop = (no_desc_space || no_bytes_left) && s_axis_rx_tvalid;
+wire no_packet_space = first_beat && (pkt_buffer_bytes_used > UPPER_ROOM_THRESHOLD);
+wire packet_too_long = (pkt_buffer_curr_pkt_len_bytes == L3_MAX_SIZE_BYTES);
+// wire no_bytes_left = pkt_buffer_bytes_free == 0;
+// wire drop = (no_desc_space || no_bytes_left) && s_axis_rx_tvalid;
+wire drop = (no_desc_space || no_packet_space || packet_too_long) && s_axis_rx_tvalid;
 reg latched_drop;
 wire last = (s_axis_rx_tlast && s_axis_rx_tvalid);
 wire crc_mismatch = s_axis_rx_tuser; // RX raises tuser high on last byte to represent CRC error detection
@@ -92,6 +97,8 @@ always_ff @(posedge clk) begin
         pkt_buffer_prev_wr_ptr <= 0;
         pkt_buffer_curr_pkt_len_bytes <= 0;
         pkt_buffer_bytes_used <= 0;
+        dest_sat_wr <= 0;
+        first_beat <= 1;
     end else begin
         pkt_buffer_bytes_used <= pkt_buffer_bytes_used
                     + (commit ? pkt_buffer_curr_pkt_len_bytes + 1 : 0)
@@ -102,8 +109,11 @@ always_ff @(posedge clk) begin
         if (accept) begin
             pkt_buffer_wr_ptr <= pkt_buffer_wr_ptr + 1;
             pkt_buffer_curr_pkt_len_bytes <= pkt_buffer_curr_pkt_len_bytes + 1;
+            if (first_beat) begin
+                first_beat <= 0;
+            end
             if (pkt_buffer_curr_pkt_len_bytes == 1) begin
-                // Register dest_sat(Second Byte of Packet) for current_descriptor
+                // Register dest_sat(Second Byte of Packet) for current packet's descriptor
                 dest_sat_wr <= s_axis_rx_tdata;
             end
         end
@@ -112,6 +122,7 @@ always_ff @(posedge clk) begin
                 // roll-back since link_adapter_RX marked packet as invalid
                 pkt_buffer_wr_ptr <= pkt_buffer_prev_wr_ptr;
             end
+            first_beat <= 1;
             pkt_buffer_curr_pkt_len_bytes <= 0;
         end
     end
@@ -121,8 +132,9 @@ end
 reg servicing_buffer_read;
 packets_and_frames::l3_packet_descriptor_t descriptor_rd;
 assign s_axis_tx_cmd_tready = !servicing_buffer_read;
+reg [$clog2(L3_MAX_SIZE_BYTES):0] bytes_left;
 wire on_last_byte_read;
-assign on_last_byte_read = (pkt_buffer_rd_ptr == (descriptor_rd.start_ptr + descriptor_rd.length - 1) % RX_L3_BUFFER_DEPTH_BYTES);
+assign on_last_byte_read = bytes_left == 1;
 wire read_done = m_axis_tx_tvalid && m_axis_tx_tready && on_last_byte_read;
 assign m_axis_tx_tlast = on_last_byte_read;
 always_ff @(posedge clk) begin
@@ -131,15 +143,18 @@ always_ff @(posedge clk) begin
         servicing_buffer_read <= 0;
         pkt_buffer_rd_ptr <= 0;
         m_axis_tx_tvalid <= 0;
+        bytes_left <= 0;
     end else begin
         m_axis_tx_tvalid <= servicing_buffer_read && !read_done;
         if(s_axis_tx_cmd_tready && s_axis_tx_cmd_tvalid) begin
                 servicing_buffer_read <= 1;
                 descriptor_rd <= s_axis_tx_cmd_tdata;
                 pkt_buffer_rd_ptr <= s_axis_tx_cmd_tdata.start_ptr;
+                bytes_left <= s_axis_tx_cmd_tdata.length;
         end else begin
             if(m_axis_tx_tvalid && m_axis_tx_tready) begin
                 pkt_buffer_rd_ptr <= pkt_buffer_rd_ptr+1;
+                bytes_left <= bytes_left-1;
                 if (on_last_byte_read) begin
                     servicing_buffer_read <= 0;
                 end

@@ -42,5 +42,33 @@ crossbar_arbiter #(
     .granted_idx        (granted_idx)
 );
 
+generate
+    // drive request matrix from pkt_desc axi_valid signals
+    for(genvar k = 0; k < NUM_LINKS; k++) begin: crossbar_arbiter_requests_gen
+        always_comb begin
+            request_matrix[k] = 0;
+            if (l3_buffers[k].m_axis_pkt_desc_tvalid) begin
+                request_matrix[k] = 1'b1;
+            end
+        end
+    end
+    // extract egresss packet descriptor interface axi ready signal to use without indexing the interface (because indexing interfaces with runtime variables (int) is illegal in Verilog)
+    logic egress_s_axis_router_cmd_tready_signal;
+    always @(*) begin
+        egress_s_axis_router_cmd_tready_signal = link_adapter_egress.s_axis_router_cmd_tready;
+    end
+
+    // drive the ingress interface axi ready signals using crossbar outputs and 
+    for (genvar m = 0; m < NUM_LINKS; m++) begin : demux_crossbar_arbiter
+            always_comb begin
+            l3_buffers[m].m_axis_pkt_desc_tready = 0;
+            for (int j = 0; j < NUM_LINKS; j++) begin
+                if(grant_active && granted_idx == m) begin
+                    l3_buffers[m].m_axis_pkt_desc_tready = egress_s_axis_router_cmd_tready_signal;
+                end
+            end
+            end
+    end
+endgenerate
 
 endmodule

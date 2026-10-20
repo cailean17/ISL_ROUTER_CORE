@@ -19,7 +19,7 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 import packets_and_frames::*;
-
+/* verilator coverage_off */
 interface laser_link_phy_if;
     logic [7:0] data;
     modport slave(input data);
@@ -76,3 +76,4 @@ interface l3_buffer_if;
     logic m_axis_tx_tready;
 
 endinterface
+/* verilator coverage_on */

@@ -6,3 +6,5 @@
 ./RTL/link_adapter_tx.sv
 ./RTL/crossbar_arbiter.sv
 ./RTL/router_core.sv
+./RTL/router_core_flat.sv
+./RTL/router_core_ip_wrapper_top.sv
