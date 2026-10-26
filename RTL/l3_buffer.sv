@@ -1,3 +1,4 @@
+`timescale 1ns / 1ps
 import packets_and_frames::*;
 
 module l3_buffer

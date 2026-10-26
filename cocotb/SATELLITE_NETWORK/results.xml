@@ -1,0 +1,8 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1792993508" />
+    <testcase name="single_packet_send_and_receive_test" classname="satellite_network_coco_tb" file="/mnt/c/Users/Caile/Documents/ISL_Router/cocotb/SATELLITE_NETWORK/satellite_network_coco_tb.py" lineno="53" time="46.69008183479309" sim_time_ns="4722.5" ratio_time="101.14567836291153">
+      <failure error_type="KeyboardInterrupt" error_msg="" />
+    </testcase>
+  </testsuite>
+</testsuites>

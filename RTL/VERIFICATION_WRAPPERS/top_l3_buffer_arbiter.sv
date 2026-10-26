@@ -4,11 +4,11 @@ module top_l3_buffer_arbiter #(parameter int NUM_LINKS = 4)(
     input clk, 
     input reset
 );
-reg [NUM_LINKS-1:0] request_matrix;
-link_adapter_tx_if link_adapter_egress[NUM_LINKS] ();
+reg [NUM_LINKS:0] request_matrix;
+link_adapter_tx_if link_adapter_egress[NUM_LINKS+1] ();
 l3_buffer_if l3_buffer();
 reg grant_active;
-reg [$clog2(NUM_LINKS)-1: 0] granted_idx;
+reg [$clog2(NUM_LINKS) : 0] granted_idx;
 
 l3_buffer_arbiter #(
     .NUM_LINKS(NUM_LINKS)

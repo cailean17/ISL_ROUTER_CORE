@@ -1,0 +1,37 @@
+`timescale 1ns / 1ps
+
+module satellite_network_tb;
+    localparam int NUM_LINKS = {{ input.constants.NUM_LINKS }};
+    localparam int NUM_SATS  = {{ input.constants.NUM_PLANES * input.constants.SATS_PER_PLANE }};
+
+    logic clk;
+    logic reset;
+
+{% for node in input.network_adjacency_list %}
+    // ---------------- Satellite {{ node.id }} ----------------
+    laser_link_phy_if sat_{{ node.id }}_ingress [NUM_LINKS] ();
+    laser_link_phy_if sat_{{ node.id }}_egress  [NUM_LINKS] ();
+
+    router_core #(
+        .NUM_LINKS (NUM_LINKS),
+        .NUM_SATS  (NUM_SATS),
+        .SAT_ID    ({{ node.id }}),
+        .FIB_FILE  ("{{ input.fib_dir }}/SAT{{ node.id }}_FIB.mem")
+    ) sat_{{ node.id }} (
+        .clk               (clk),
+        .reset             (reset),
+        .laser_link_ingress(sat_{{ node.id }}_ingress),
+        .laser_link_egress (sat_{{ node.id }}_egress)
+    );
+
+{% endfor %}
+    // ---------------- Physical links ----------------
+    // One assign per direction: satellite A, link la  ->  satellite B, link lb.
+    // Every undirected link appears in both nodes' edge lists, so both directions are generated.
+{% for node in input.network_adjacency_list %}
+{% for e in node.edges %}
+    assign sat_{{ e.dest_sat_id }}_ingress[{{ e.dest_link_id }}].data = sat_{{ e.src_sat_id }}_egress[{{ e.src_link_id }}].data;
+{% endfor %}
+{% endfor %}
+
+endmodule

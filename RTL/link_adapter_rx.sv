@@ -1,3 +1,4 @@
+`timescale 1ns / 1ps
 import packets_and_frames::*;
 module link_adapter_rx
 (
@@ -176,6 +177,7 @@ always @(posedge clk) begin
         byte_ctr_crc_in <= 0;
         latched_L3_packet_size <= 0;
         d1 <= 0;
+        v1 <= 0;
         valid_crc_flag <= 1;
     end else begin
         d1 <= 0;

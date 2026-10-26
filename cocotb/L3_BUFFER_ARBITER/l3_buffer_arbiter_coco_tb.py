@@ -24,7 +24,7 @@ def generate_l3_buffer_table():
         l3_packet_desc, l3_packet = generate_l3_packet_and_desc_pair()
         l3_buffer_table[l3_packet_desc] = {
             "packet": l3_packet,
-            "link_adapter_egress_id": random.randint(0, NUM_LINKS - 1),
+            "link_adapter_egress_id": random.randint(0, NUM_LINKS),
         }
 
 
@@ -163,8 +163,8 @@ async def constrained_random_drive_link_adapter_egress_tx_axi_interface(
 
 
 def determine_winining_idx(request_matrix, previously_granted_idx):
-    for i in range(1, NUM_LINKS + 1):
-        testing_idx = (previously_granted_idx + i) % NUM_LINKS
+    for i in range(1, NUM_LINKS + 2):
+        testing_idx = (previously_granted_idx + i) % (NUM_LINKS+1)
         if request_matrix & 1 << (testing_idx) == 1 << testing_idx:
             return testing_idx
 
@@ -224,15 +224,15 @@ async def single_request_arbitration_test(dut):
     curr_run = 0
     cocotb.start_soon(Clock(dut.clk, TEST_CLK_PERIOD_US, "us").start())
     await reset_dut(dut)
-    previously_granted_idx = NUM_LINKS - 1
+    previously_granted_idx = NUM_LINKS
     while curr_run < RUNS:
-        requesting_l3_buffer_idx = random.randint(0, NUM_LINKS - 1)
-        for j in range(NUM_LINKS):
+        requesting_l3_buffer_idx = random.randint(0, NUM_LINKS)
+        for j in range(NUM_LINKS+1):
             await RisingEdge(dut.clk)
             await ReadWrite()
             dut.l3_buffer_arbiter.rr_ptr.value = j
             entries_picked = []
-            for i in range(NUM_LINKS):
+            for i in range(NUM_LINKS+1):
                 packets_in_buffer_per_egress = list(
                     filter(
                         lambda x: x[1]["link_adapter_egress_id"] == i,

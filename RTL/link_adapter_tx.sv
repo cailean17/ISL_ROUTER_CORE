@@ -1,3 +1,4 @@
+`timescale 1ns / 1ps
 import packets_and_frames::*;
 
 module link_adapter_tx

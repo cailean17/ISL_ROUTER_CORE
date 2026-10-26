@@ -140,18 +140,22 @@ def unpack_desc(value):
     return fields
 
 
-def generate_l3_packet_and_desc_pair(l3_packet_payload_length=None, src_sat=None):
+def generate_l3_packet_and_desc_pair(l3_packet_payload_length=None, src_sat=None, dest_sat= None):
     """Unspecified fields default to constrained random generation"""
     l3_packet_payload_length = (
         l3_packet_payload_length
         if l3_packet_payload_length is not None
         else random.randint(1, L3_PAYLOAD_MAX_SIZE_BYTES)
     )
-    l3_packet_desc = (
-        pack_desc(length=l3_packet_payload_length + L3_HEADER_SIZE_BYTES)
-        if l3_packet_payload_length
-        else pack_desc()
-    )
+    l3_packet_desc = None
+    if l3_packet_payload_length and dest_sat:
+        l3_packet_desc = pack_desc(length=l3_packet_payload_length + L3_HEADER_SIZE_BYTES, dest_sat=dest_sat)
+    elif l3_packet_payload_length:
+        l3_packet_desc = pack_desc(length=l3_packet_payload_length + L3_HEADER_SIZE_BYTES)
+    elif dest_sat:
+        l3_packet_desc = pack_desc(dest_sat=dest_sat)
+    else:
+        l3_packet_desc = pack_desc()
 
     l3_packet, l3_packet_size = generate_l3_packet(
         src_sat=src_sat

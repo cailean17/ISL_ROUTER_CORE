@@ -42,7 +42,7 @@ async def reset_dut(dut):
     dut.reset.value = 0
 
 
-async def simulated_router_send_l3_packet_descriptor(dut, l3_packet_desc=None):
+async def simulated_router_drive_l3_packet_descriptor(dut, l3_packet_desc=None):
     await FallingEdge(dut.clk)
     await ReadWrite()
     dut.s_axis_router_cmd_tdata.value = l3_packet_desc
@@ -102,7 +102,7 @@ async def simulated_l3_buffer_stream_l3_packet(dut, l3_packet):
     dut.s_axis_tx_tlast.value = 0
 
 
-async def verify_l2_packet_transmission(dut, l3_packet):
+async def monitor_l2_frame_transmission(dut, l3_packet):
     l2_frame = generate_l2_frame(l3_packet)
     byte_idx = 0
     while byte_idx < len(l2_frame):
@@ -139,14 +139,14 @@ async def drive_single_l3_packet_with_one_byte_payload_test(dut):
     l3_packet_desc, l3_packet = generate_l3_packet_and_desc_pair(
         l3_packet_payload_length=1
     )
-    await simulated_router_send_l3_packet_descriptor(
+    await simulated_router_drive_l3_packet_descriptor(
         dut=dut, l3_packet_desc=l3_packet_desc
     )
     await simulated_l3_buffer_receive_packet_descriptor(dut=dut)
     cocotb.start_soon(
         simulated_l3_buffer_stream_l3_packet(dut=dut, l3_packet=l3_packet)
     )
-    await verify_l2_packet_transmission(dut=dut, l3_packet=l3_packet)
+    await monitor_l2_frame_transmission(dut=dut, l3_packet=l3_packet)
 
 
 @cocotb.test
@@ -156,14 +156,14 @@ async def drive_single_l3_packet_with_max_payload_test(dut):
     l3_packet_desc, l3_packet = generate_l3_packet_and_desc_pair(
         l3_packet_payload_length=L3_PAYLOAD_MAX_SIZE_BYTES
     )
-    await simulated_router_send_l3_packet_descriptor(
+    await simulated_router_drive_l3_packet_descriptor(
         dut=dut, l3_packet_desc=l3_packet_desc
     )
     await simulated_l3_buffer_receive_packet_descriptor(dut=dut)
     cocotb.start_soon(
         simulated_l3_buffer_stream_l3_packet(dut=dut, l3_packet=l3_packet)
     )
-    await verify_l2_packet_transmission(dut=dut, l3_packet=l3_packet)
+    await monitor_l2_frame_transmission(dut=dut, l3_packet=l3_packet)
 
 
 @cocotb.test
@@ -176,14 +176,14 @@ async def drive_stress_test_l3_packets_with_max_payload_test(dut):
         l3_packet_desc, l3_packet = generate_l3_packet_and_desc_pair(
             l3_packet_payload_length=L3_PAYLOAD_MAX_SIZE_BYTES
         )
-        await simulated_router_send_l3_packet_descriptor(
+        await simulated_router_drive_l3_packet_descriptor(
             dut=dut, l3_packet_desc=l3_packet_desc
         )
         await simulated_l3_buffer_receive_packet_descriptor(dut=dut)
         cocotb.start_soon(
             simulated_l3_buffer_stream_l3_packet(dut=dut, l3_packet=l3_packet)
         )
-        await verify_l2_packet_transmission(dut=dut, l3_packet=l3_packet)
+        await monitor_l2_frame_transmission(dut=dut, l3_packet=l3_packet)
         packet_count += 1
 
 
@@ -195,27 +195,12 @@ async def drive_stress_test_l3_packets_with_randomized_payload_test(dut):
     await reset_dut(dut)
     while packet_count < PACKET_COUNT:
         l3_packet_desc, l3_packet = generate_l3_packet_and_desc_pair()
-        await simulated_router_send_l3_packet_descriptor(
+        await simulated_router_drive_l3_packet_descriptor(
             dut=dut, l3_packet_desc=l3_packet_desc
         )
         await simulated_l3_buffer_receive_packet_descriptor(dut=dut)
         cocotb.start_soon(
             simulated_l3_buffer_stream_l3_packet(dut=dut, l3_packet=l3_packet)
         )
-        await verify_l2_packet_transmission(dut=dut, l3_packet=l3_packet)
+        await monitor_l2_frame_transmission(dut=dut, l3_packet=l3_packet)
         packet_count += 1
-
-
-# @cocotb.test
-# async def drive_single_l3_packet_with_random_payload_test(dut):
-#     cocotb.start_soon(Clock(dut.clk, TEST_CLK_PERIOD_US, "us").start())
-#     await reset_dut(dut)
-#     l3_packet, l3_packet_size, l3_packet_byte_list = await send_l3_packet(
-#         dut,
-#         src_sat=0x0A,
-#         dest_sat=0x0B,
-#         ttl=5,
-#         payload_length=random.randint(0, L3_PAYLOAD_MAX_SIZE_BYTES),
-#         seed_byte=random.randint(0, 0xFF),
-#     )
-#     await check_l2_frame(dut, l3_packet, l3_packet_size, l3_packet_byte_list)
