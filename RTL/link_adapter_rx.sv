@@ -124,7 +124,11 @@ always_comb begin
         end
         COMMIT: begin
             // Commit last byte and mark valid/invalid to L3 Buffer
-            next_link_adapter_rx_state = STALL;
+            if (sof_detected) begin
+                next_link_adapter_rx_state = DISASSEMBLE;
+            end else begin
+                next_link_adapter_rx_state = STALL;
+            end
         end
         default: begin
             next_link_adapter_rx_state = current_link_adapter_rx_state;

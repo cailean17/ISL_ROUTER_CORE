@@ -2,8 +2,10 @@
 ./RTL/interfaces.sv
 ./RTL/CRC.sv
 ./RTL/l3_buffer.sv
+./RTL/l3_buffer_arbiter.sv
 ./RTL/link_adapter_rx.sv
 ./RTL/link_adapter_tx.sv
+./RTL/downlink.sv
 ./RTL/crossbar_arbiter.sv
 ./RTL/router_core.sv
 ./RTL/router_core_flat.sv

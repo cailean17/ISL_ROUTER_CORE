@@ -1,0 +1,62 @@
+name: Generate LCOV Coverage Badges
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+     - "cocotb/**/coverage.info"
+
+jobs:
+  generate-badges:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    strategy:
+      matrix:
+        dir: [ "CRC", "CROSSBAR_ARBITER", "L3_BUFFER_ARBITER", "L3_BUFFER", "LINK_ADAPTER_RX", "LINK_ADAPTER_TX"]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Process Coverage for ${{ matrix.dir }}
+        uses: ImBIOS/lcov-coverage-badge@v1
+        with:
+          file: ./cocotb/${{ matrix.dir }}/coverage.info
+          label: "${{ matrix.dir }}"
+          
+      - name: Save Badge Uniquely
+        run: |
+          mkdir -p badges
+          mv coverage.svg badges/${{ matrix.dir }}-coverage.svg
+
+      - name: Upload Badge Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: badge-${{ matrix.dir }}
+          path: badges/${{ matrix.dir }}-coverage.svg
+
+  commit-badges:
+    needs: generate-badges
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Download all individual badge files gathered from the loop
+      - name: Download All Badges
+        uses: actions/download-artifact@v4
+        with:
+          path: badges-temp
+          merge-multiple: true
+
+      # Move them to a dedicated directory and push them to your repository
+      - name: Commit and Push Badges
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: badges-temp
+          branch: badges
+          target-folder: project-badges

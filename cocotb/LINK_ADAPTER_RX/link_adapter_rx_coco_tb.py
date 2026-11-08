@@ -150,8 +150,8 @@ async def run_single_frame_test(
         f"CRC corrupted={corrupt_crc}"
     )
 
-    # Allow the RX FSM to return to STALL before the next frame.
-    await wait_cycles(dut.clk, 3)
+    # Allow the RX FSM to run through 4 cycle CRC pipline delay before the next frame.
+    await wait_cycles(dut.clk, 4)
 
 
 @cocotb.test

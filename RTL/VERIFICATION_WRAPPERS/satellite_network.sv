@@ -11,6 +11,7 @@ module satellite_network;
     // ---------------- Satellite 0 ----------------
     laser_link_phy_if sat_0_ingress [NUM_LINKS] ();
     laser_link_phy_if sat_0_egress  [NUM_LINKS] ();
+    logic [7:0] sat_0_uplink_data;
 
     router_core #(
         .NUM_LINKS (NUM_LINKS),
@@ -21,13 +22,15 @@ module satellite_network;
         .clk               (clk),
         .reset             (reset),
         .laser_link_ingress(sat_0_ingress),
-        .laser_link_egress (sat_0_egress)
+        .laser_link_egress (sat_0_egress),
+        .uplink_data       (sat_0_uplink_data)
     );
 
 
     // ---------------- Satellite 1 ----------------
     laser_link_phy_if sat_1_ingress [NUM_LINKS] ();
     laser_link_phy_if sat_1_egress  [NUM_LINKS] ();
+    logic [7:0] sat_1_uplink_data;
 
     router_core #(
         .NUM_LINKS (NUM_LINKS),
@@ -38,13 +41,15 @@ module satellite_network;
         .clk               (clk),
         .reset             (reset),
         .laser_link_ingress(sat_1_ingress),
-        .laser_link_egress (sat_1_egress)
+        .laser_link_egress (sat_1_egress),
+        .uplink_data       (sat_1_uplink_data)
     );
 
 
     // ---------------- Satellite 2 ----------------
     laser_link_phy_if sat_2_ingress [NUM_LINKS] ();
     laser_link_phy_if sat_2_egress  [NUM_LINKS] ();
+    logic [7:0] sat_2_uplink_data;
 
     router_core #(
         .NUM_LINKS (NUM_LINKS),
@@ -55,13 +60,15 @@ module satellite_network;
         .clk               (clk),
         .reset             (reset),
         .laser_link_ingress(sat_2_ingress),
-        .laser_link_egress (sat_2_egress)
+        .laser_link_egress (sat_2_egress),
+        .uplink_data       (sat_2_uplink_data)
     );
 
 
     // ---------------- Satellite 3 ----------------
     laser_link_phy_if sat_3_ingress [NUM_LINKS] ();
     laser_link_phy_if sat_3_egress  [NUM_LINKS] ();
+    logic [7:0] sat_3_uplink_data;
 
     router_core #(
         .NUM_LINKS (NUM_LINKS),
@@ -72,13 +79,15 @@ module satellite_network;
         .clk               (clk),
         .reset             (reset),
         .laser_link_ingress(sat_3_ingress),
-        .laser_link_egress (sat_3_egress)
+        .laser_link_egress (sat_3_egress),
+        .uplink_data       (sat_3_uplink_data)
     );
 
 
     // ---------------- Satellite 4 ----------------
     laser_link_phy_if sat_4_ingress [NUM_LINKS] ();
     laser_link_phy_if sat_4_egress  [NUM_LINKS] ();
+    logic [7:0] sat_4_uplink_data;
 
     router_core #(
         .NUM_LINKS (NUM_LINKS),
@@ -89,13 +98,15 @@ module satellite_network;
         .clk               (clk),
         .reset             (reset),
         .laser_link_ingress(sat_4_ingress),
-        .laser_link_egress (sat_4_egress)
+        .laser_link_egress (sat_4_egress),
+        .uplink_data       (sat_4_uplink_data)
     );
 
 
     // ---------------- Satellite 5 ----------------
     laser_link_phy_if sat_5_ingress [NUM_LINKS] ();
     laser_link_phy_if sat_5_egress  [NUM_LINKS] ();
+    logic [7:0] sat_5_uplink_data;
 
     router_core #(
         .NUM_LINKS (NUM_LINKS),
@@ -106,13 +117,15 @@ module satellite_network;
         .clk               (clk),
         .reset             (reset),
         .laser_link_ingress(sat_5_ingress),
-        .laser_link_egress (sat_5_egress)
+        .laser_link_egress (sat_5_egress),
+        .uplink_data       (sat_5_uplink_data)
     );
 
 
     // ---------------- Satellite 6 ----------------
     laser_link_phy_if sat_6_ingress [NUM_LINKS] ();
     laser_link_phy_if sat_6_egress  [NUM_LINKS] ();
+    logic [7:0] sat_6_uplink_data;
 
     router_core #(
         .NUM_LINKS (NUM_LINKS),
@@ -123,13 +136,15 @@ module satellite_network;
         .clk               (clk),
         .reset             (reset),
         .laser_link_ingress(sat_6_ingress),
-        .laser_link_egress (sat_6_egress)
+        .laser_link_egress (sat_6_egress),
+        .uplink_data       (sat_6_uplink_data)
     );
 
 
     // ---------------- Satellite 7 ----------------
     laser_link_phy_if sat_7_ingress [NUM_LINKS] ();
     laser_link_phy_if sat_7_egress  [NUM_LINKS] ();
+    logic [7:0] sat_7_uplink_data;
 
     router_core #(
         .NUM_LINKS (NUM_LINKS),
@@ -140,13 +155,15 @@ module satellite_network;
         .clk               (clk),
         .reset             (reset),
         .laser_link_ingress(sat_7_ingress),
-        .laser_link_egress (sat_7_egress)
+        .laser_link_egress (sat_7_egress),
+        .uplink_data       (sat_7_uplink_data)
     );
 
 
     // ---------------- Satellite 8 ----------------
     laser_link_phy_if sat_8_ingress [NUM_LINKS] ();
     laser_link_phy_if sat_8_egress  [NUM_LINKS] ();
+    logic [7:0] sat_8_uplink_data;
 
     router_core #(
         .NUM_LINKS (NUM_LINKS),
@@ -157,13 +174,15 @@ module satellite_network;
         .clk               (clk),
         .reset             (reset),
         .laser_link_ingress(sat_8_ingress),
-        .laser_link_egress (sat_8_egress)
+        .laser_link_egress (sat_8_egress),
+        .uplink_data       (sat_8_uplink_data)
     );
 
 
     // ---------------- Satellite 9 ----------------
     laser_link_phy_if sat_9_ingress [NUM_LINKS] ();
     laser_link_phy_if sat_9_egress  [NUM_LINKS] ();
+    logic [7:0] sat_9_uplink_data;
 
     router_core #(
         .NUM_LINKS (NUM_LINKS),
@@ -174,13 +193,15 @@ module satellite_network;
         .clk               (clk),
         .reset             (reset),
         .laser_link_ingress(sat_9_ingress),
-        .laser_link_egress (sat_9_egress)
+        .laser_link_egress (sat_9_egress),
+        .uplink_data       (sat_9_uplink_data)
     );
 
 
     // ---------------- Satellite 10 ----------------
     laser_link_phy_if sat_10_ingress [NUM_LINKS] ();
     laser_link_phy_if sat_10_egress  [NUM_LINKS] ();
+    logic [7:0] sat_10_uplink_data;
 
     router_core #(
         .NUM_LINKS (NUM_LINKS),
@@ -191,13 +212,15 @@ module satellite_network;
         .clk               (clk),
         .reset             (reset),
         .laser_link_ingress(sat_10_ingress),
-        .laser_link_egress (sat_10_egress)
+        .laser_link_egress (sat_10_egress),
+        .uplink_data       (sat_10_uplink_data)
     );
 
 
     // ---------------- Satellite 11 ----------------
     laser_link_phy_if sat_11_ingress [NUM_LINKS] ();
     laser_link_phy_if sat_11_egress  [NUM_LINKS] ();
+    logic [7:0] sat_11_uplink_data;
 
     router_core #(
         .NUM_LINKS (NUM_LINKS),
@@ -208,13 +231,15 @@ module satellite_network;
         .clk               (clk),
         .reset             (reset),
         .laser_link_ingress(sat_11_ingress),
-        .laser_link_egress (sat_11_egress)
+        .laser_link_egress (sat_11_egress),
+        .uplink_data       (sat_11_uplink_data)
     );
 
 
     // ---------------- Satellite 12 ----------------
     laser_link_phy_if sat_12_ingress [NUM_LINKS] ();
     laser_link_phy_if sat_12_egress  [NUM_LINKS] ();
+    logic [7:0] sat_12_uplink_data;
 
     router_core #(
         .NUM_LINKS (NUM_LINKS),
@@ -225,13 +250,15 @@ module satellite_network;
         .clk               (clk),
         .reset             (reset),
         .laser_link_ingress(sat_12_ingress),
-        .laser_link_egress (sat_12_egress)
+        .laser_link_egress (sat_12_egress),
+        .uplink_data       (sat_12_uplink_data)
     );
 
 
     // ---------------- Satellite 13 ----------------
     laser_link_phy_if sat_13_ingress [NUM_LINKS] ();
     laser_link_phy_if sat_13_egress  [NUM_LINKS] ();
+    logic [7:0] sat_13_uplink_data;
 
     router_core #(
         .NUM_LINKS (NUM_LINKS),
@@ -242,13 +269,15 @@ module satellite_network;
         .clk               (clk),
         .reset             (reset),
         .laser_link_ingress(sat_13_ingress),
-        .laser_link_egress (sat_13_egress)
+        .laser_link_egress (sat_13_egress),
+        .uplink_data       (sat_13_uplink_data)
     );
 
 
     // ---------------- Satellite 14 ----------------
     laser_link_phy_if sat_14_ingress [NUM_LINKS] ();
     laser_link_phy_if sat_14_egress  [NUM_LINKS] ();
+    logic [7:0] sat_14_uplink_data;
 
     router_core #(
         .NUM_LINKS (NUM_LINKS),
@@ -259,13 +288,15 @@ module satellite_network;
         .clk               (clk),
         .reset             (reset),
         .laser_link_ingress(sat_14_ingress),
-        .laser_link_egress (sat_14_egress)
+        .laser_link_egress (sat_14_egress),
+        .uplink_data       (sat_14_uplink_data)
     );
 
 
     // ---------------- Satellite 15 ----------------
     laser_link_phy_if sat_15_ingress [NUM_LINKS] ();
     laser_link_phy_if sat_15_egress  [NUM_LINKS] ();
+    logic [7:0] sat_15_uplink_data;
 
     router_core #(
         .NUM_LINKS (NUM_LINKS),
@@ -276,7 +307,8 @@ module satellite_network;
         .clk               (clk),
         .reset             (reset),
         .laser_link_ingress(sat_15_ingress),
-        .laser_link_egress (sat_15_egress)
+        .laser_link_egress (sat_15_egress),
+        .uplink_data       (sat_15_uplink_data)
     );
 
 

@@ -14,10 +14,9 @@ from CONSTANTS.constants import (
     L3_PAYLOAD_MAX_SIZE_BYTES,
     L3_SRC_SAT_SIZE_BYTES,
     L3_TTL_SIZE_BYTES,
-    NUM_LINKS,
+    RX_L3_BUFFER_ID_W,
     RX_L3_BUFFER_PTR_W,
     RX_L3_DESC_ID_W,
-    clog2,
 )
 
 
@@ -50,7 +49,7 @@ def generate_l3_packet(src_sat, dest_sat, ttl, payload_length, seed_byte=0x00):
     **Returns:**\n
     A tuple: (l3_packet (list of bytes LSB first), packet_size_bytes)
     """
-    l3_packet = [0] * (payload_length + L3_HEADER_SIZE_BYTES)
+    l3_packet = [0] * (payload_length + L3_HEADER_SIZE_BYTES)  # includes Reserved Byte
     running_offset = 0
 
     for i in range(L3_SRC_SAT_SIZE_BYTES):
@@ -74,8 +73,9 @@ def generate_l3_packet(src_sat, dest_sat, ttl, payload_length, seed_byte=0x00):
         payload_length_cp >>= 8
     running_offset += L2_PAYLOAD_LENGTH_SIZE_BYTES
 
-    for i in range(payload_length):
+    for i in range(payload_length - 1):
         l3_packet[running_offset + i] = (seed_byte + i) & 0xFF
+    running_offset += payload_length
 
     return l3_packet, len(l3_packet) & 0xFFFF
 
@@ -112,7 +112,7 @@ PACKET_DESC_FIELDS = [
     ("length", L3_LENGTH_W),
     ("dest_sat", 8 * L3_DEST_SAT_SIZE_BYTES),
     ("desc_id", RX_L3_DESC_ID_W),
-    ("buffer_id", clog2(NUM_LINKS)),
+    ("buffer_id", RX_L3_BUFFER_ID_W),
 ]
 PACKET_DESC_WIDTH = sum(w for _, w in PACKET_DESC_FIELDS)
 
@@ -140,7 +140,14 @@ def unpack_desc(value):
     return fields
 
 
-def generate_l3_packet_and_desc_pair(l3_packet_payload_length=None, src_sat=None, dest_sat= None):
+def normalize_packet_desc(desc: int) -> int:
+    """Removes Buffer ID from a packet descriptor for E2E Scoreboard Comparison"""
+    return desc >> RX_L3_BUFFER_ID_W
+
+
+def generate_l3_packet_and_desc_pair(
+    l3_packet_payload_length=None, src_sat=None, dest_sat=None, ttl=None
+):
     """Unspecified fields default to constrained random generation"""
     l3_packet_payload_length = (
         l3_packet_payload_length
@@ -148,21 +155,27 @@ def generate_l3_packet_and_desc_pair(l3_packet_payload_length=None, src_sat=None
         else random.randint(1, L3_PAYLOAD_MAX_SIZE_BYTES)
     )
     l3_packet_desc = None
-    if l3_packet_payload_length and dest_sat:
-        l3_packet_desc = pack_desc(length=l3_packet_payload_length + L3_HEADER_SIZE_BYTES, dest_sat=dest_sat)
-    elif l3_packet_payload_length:
-        l3_packet_desc = pack_desc(length=l3_packet_payload_length + L3_HEADER_SIZE_BYTES)
-    elif dest_sat:
+    if l3_packet_payload_length is not None and dest_sat is not None:
+        l3_packet_desc = pack_desc(
+            length=l3_packet_payload_length + L3_HEADER_SIZE_BYTES, dest_sat=dest_sat
+        )
+    elif l3_packet_payload_length is not None:
+        l3_packet_desc = pack_desc(
+            length=l3_packet_payload_length + L3_HEADER_SIZE_BYTES
+        )
+    elif dest_sat is not None:
         l3_packet_desc = pack_desc(dest_sat=dest_sat)
     else:
         l3_packet_desc = pack_desc()
 
-    l3_packet, l3_packet_size = generate_l3_packet(
+    l3_packet, _ = generate_l3_packet(
         src_sat=src_sat
-        if src_sat
+        if src_sat is not None
         else random.randint(0, 1 << (L3_SRC_SAT_SIZE_BYTES * 8) - 1),
         dest_sat=unpack_desc(l3_packet_desc)["dest_sat"],
-        ttl=random.randint(0, 1 << (L3_TTL_SIZE_BYTES * 8) - 1),
+        ttl=ttl
+        if ttl is not None
+        else random.randint(0, 1 << (L3_TTL_SIZE_BYTES * 8) - 1),
         payload_length=l3_packet_payload_length,
         seed_byte=random.randint(0, 0xFF),
     )

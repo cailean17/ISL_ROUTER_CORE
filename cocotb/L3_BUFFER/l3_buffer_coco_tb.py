@@ -58,8 +58,8 @@ async def reset_dut(dut):
         "dut.pkt_desc_buffer_retire_ptr", dut.pkt_desc_buffer_retire_ptr.value, 0
     )
     assert_with_message(
-        "dut.pkt_desc_buffer_ready_to_retire",
-        dut.pkt_desc_buffer_ready_to_retire.value,
+        "dut.pkt_desc_buffer_queued_to_retire",
+        dut.pkt_desc_buffer_queued_to_retire.value,
         0,
     )
     assert_with_message("dut.unretired_cnt", dut.unretired_cnt.value, 0)
@@ -323,8 +323,6 @@ async def sequential_ingest_and_service_scoreboard(dut):
 
 
 # Constrained Random Verification Testing (B)
-
-
 # Scoreboard Value:
 class ScoreboardValue:
     def __init__(
@@ -368,7 +366,7 @@ def verify_final_state(final_state: FinalState, dut):
 
 
 # Coroutines for L3-buffer Constrained Random Verification Scoreboarding:
-# Phase 1 - Ingest : Attemp to ingest and Store L3 Packet from Link Adapter RX in L3 Buffer
+# Phase 1 - Ingest : Attempt to ingest and Store L3 Packet from Link Adapter RX in L3 Buffer
 async def ingest(dut, count, scoreboard: Scoreboard, seed):
     total_bytes = 0
     rng = random.Random(seed + 1)
@@ -485,7 +483,7 @@ async def service(
 
 # Test B.1
 @cocotb.test
-async def constrained_random_ingest_and_service_scoreboard(dut, seed=2):
+async def constrained_random_ingest_and_service_scoreboard(dut):
     dut._log.setLevel(logging.DEBUG)
     current_seed = cocotb.RANDOM_SEED
     dut._log.debug(f"Seeding with {current_seed}")

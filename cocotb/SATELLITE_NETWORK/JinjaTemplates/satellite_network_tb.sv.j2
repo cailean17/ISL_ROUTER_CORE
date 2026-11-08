@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-module satellite_network_tb;
+module satellite_network;
     localparam int NUM_LINKS = {{ input.constants.NUM_LINKS }};
     localparam int NUM_SATS  = {{ input.constants.NUM_PLANES * input.constants.SATS_PER_PLANE }};
 
@@ -11,6 +11,7 @@ module satellite_network_tb;
     // ---------------- Satellite {{ node.id }} ----------------
     laser_link_phy_if sat_{{ node.id }}_ingress [NUM_LINKS] ();
     laser_link_phy_if sat_{{ node.id }}_egress  [NUM_LINKS] ();
+    logic [7:0] sat_{{ node.id }}_uplink_data;
 
     router_core #(
         .NUM_LINKS (NUM_LINKS),
@@ -21,7 +22,8 @@ module satellite_network_tb;
         .clk               (clk),
         .reset             (reset),
         .laser_link_ingress(sat_{{ node.id }}_ingress),
-        .laser_link_egress (sat_{{ node.id }}_egress)
+        .laser_link_egress (sat_{{ node.id }}_egress),
+        .uplink_data       (sat_{{ node.id }}_uplink_data)
     );
 
 {% endfor %}

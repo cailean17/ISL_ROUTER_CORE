@@ -24,21 +24,21 @@ import packets_and_frames::*;
 module crossbar_arbiter #(parameter int NUM_LINKS = 4)(
     input clk,
     input reset, 
-    input [NUM_LINKS-1: 0] request_matrix,
-    l3_buffer_if l3_buffers [NUM_LINKS],
+    input [NUM_LINKS: 0] request_matrix,
+    l3_buffer_if l3_buffers [NUM_LINKS+1],
     link_adapter_tx_if link_adapter_egress,
     output reg grant_active, 
-    output reg [$clog2(NUM_LINKS)-1: 0] granted_idx
+    output reg [$clog2(NUM_LINKS): 0] granted_idx
 );
-reg [$clog2(NUM_LINKS)-1: 0] rr_ptr;
-reg [$clog2(NUM_LINKS)-1:0] idx;
+reg [$clog2(NUM_LINKS): 0] rr_ptr;
+reg [$clog2(NUM_LINKS): 0] idx;
 
 // priority encoder
 always @(*) begin
     granted_idx = rr_ptr;
     grant_active = 0;
-    for(int i = NUM_LINKS-1; i >= 0; i--) begin
-        idx = (i + rr_ptr) % NUM_LINKS;
+    for(int i = NUM_LINKS; i >= 0; i--) begin
+        idx = (i + rr_ptr) % (NUM_LINKS+1);
         if(request_matrix[idx]) begin
             grant_active = 1;
             granted_idx = idx;
@@ -50,9 +50,9 @@ end
 // drive winning l3 packet descriptor to link_adapter_tx egress
 // update l3 packet descriptor buffer_id field to map to specific src buffer
 // intermediate mux wires - one per ingress link (to overcome runtime interface indexing rules) 
-l3_packet_descriptor_t mux_inputs [NUM_LINKS-1:0];
+l3_packet_descriptor_t mux_inputs [NUM_LINKS:0];
 generate
-    for (genvar i = 0; i < NUM_LINKS; i++) begin : mux_gen
+    for (genvar i = 0; i <= NUM_LINKS; i++) begin : mux_gen
         assign mux_inputs[i] = '{
             start_ptr: l3_buffers[i].m_axis_pkt_desc_tdata.start_ptr,
             length: l3_buffers[i].m_axis_pkt_desc_tdata.length,
@@ -70,7 +70,7 @@ always @(posedge clk) begin
         rr_ptr <= 0;
     end else begin
         if(axi_handshake_complete) begin
-            rr_ptr <= granted_idx + 1;
+            rr_ptr <= (granted_idx + 1) % (NUM_LINKS+1);
         end
     end
 end

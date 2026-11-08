@@ -76,7 +76,7 @@ always @(posedge clk) begin
             servicing_l3_buffer_read <= 1;
         end
         if(axis_tx_handshake_complete) begin
-            rr_ptr <= granted_idx + 1;
+            rr_ptr <= (granted_idx + 1) % (NUM_LINKS+1);
             servicing_l3_buffer_read <= 0;
         end
     end

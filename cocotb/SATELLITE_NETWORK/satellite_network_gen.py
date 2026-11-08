@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import math
-import random
 from dataclasses import dataclass
 
 import matplotlib
@@ -11,10 +10,11 @@ NUM_PLANES = 4
 NUM_LINKS = 4
 SATS_PER_PLANE = 4
 matplotlib.use("TkAgg")
+import heapq
+
 import matplotlib.pyplot as plt
 import numpy as np
 from jinja2 import Environment, FileSystemLoader
-import heapq
 
 # Configuration
 ORBIT_RADIUS = 1.0
@@ -41,6 +41,7 @@ JINJA_TEMPLATE_NAME = "satellite_network_tb.sv.j2"
 TEMPLATE_EXPORT_LOCATION = "../../RTL/VERIFICATION_WRAPPERS/satellite_network.sv"
 FIB_EXPORT_DIRECTORY = "../../utils/FIBS/"
 
+
 @dataclass
 class Edge:
     src_sat_id: int
@@ -58,102 +59,15 @@ class NetworkNode:
     edges: list[Edge]
 
 
-def generate_random_network_topology(num_sats, max_links_per_sat):
-    network_adjacency_list: list[NetworkNode | None] = []
-    for _ in range(num_sats):
-        network_adjacency_list.append(None)
-
-    for i in range(num_sats):
-        allocated_link_count = random.randint(max_links_per_sat, max_links_per_sat)
-        inactive_link_set = {i for i in range(allocated_link_count)}
-        network_adjacency_list[i] = NetworkNode(
-            id=i,
-            allocated_link_count=allocated_link_count,
-            inactive_links=inactive_link_set,
-            edges=[],
-        )
-
-    for j in range(num_sats):
-        src_sat = network_adjacency_list[j]
-        if src_sat is None:
-            print(
-                "WARNING: Found Empty NoneType Object in Network Adjacency List after initialization"
-            )
-            continue
-        for src_link_id in network_adjacency_list[j].inactive_links.copy():
-            candidates = [
-                node
-                for node in network_adjacency_list
-                if node is not None
-                and node.id != src_sat.id
-                and node.inactive_links
-                and node.id not in {edge.dest_sat_id for edge in src_sat.edges}
-            ]
-            if not candidates:
-                break
-            candidate_dest_sat = random.choice(candidates)
-            dest_link_id = random.choice(list(candidate_dest_sat.inactive_links))
-            src_sat.edges.append(
-                Edge(
-                    src_sat_id=src_sat.id,
-                    src_link_id=src_link_id,
-                    dest_sat_id=candidate_dest_sat.id,
-                    dest_link_id=dest_link_id,
-                )
-            )
-            candidate_dest_sat.edges.append(
-                Edge(
-                    src_sat_id=candidate_dest_sat.id,
-                    src_link_id=dest_link_id,
-                    dest_sat_id=src_sat.id,
-                    dest_link_id=src_link_id,
-                )
-            )
-            src_sat.inactive_links.remove(src_link_id)
-            candidate_dest_sat.inactive_links.remove(dest_link_id)
-    return network_adjacency_list
-
-
-def visualize_random_network(network_adjacency_list):
-    import matplotlib.pyplot as plt
-    import networkx as nx
-
-    G = nx.Graph()
-
-    for sat in network_adjacency_list:
-        if sat is None:
-            continue
-
-        G.add_node(sat.id)
-
-        for edge in sat.edges:
-            G.add_edge(edge.src_sat_id, edge.dest_sat_id)
-
-    pos = nx.spring_layout(G)
-
-    fig, ax = plt.subplots(figsize=(14, 14))
-    sat_labels = {node: f"Sat {node}" for node in G.nodes()}
-    nx.draw_networkx_edges(G, pos, ax=ax, edge_color="gray", width=1.5)
-    nx.draw_networkx_nodes(G, pos, ax=ax, node_color="skyblue", node_size=800)
-    nx.draw_networkx_labels(G, pos, labels=sat_labels, ax=ax, font_size=9)
-    ax.set_title("Satellite OISL Network Topology")
-    ax.axis("off")
-    fig.savefig("Network.png", dpi=200, bbox_inches="tight")
-    plt.close(fig)
-
-
 def generate_topology():
     """Generate a ring topology with intra and inter-orbital-plane links."""
-    network_adjacency_list: list[NetworkNode | None] = []
+    network_adjacency_list: list[NetworkNode] = []
     # Node creation
     for plane in range(NUM_PLANES):
         for sat_pos in range(SATS_PER_PLANE):
             sat_id = plane * SATS_PER_PLANE + sat_pos
-            node : NetworkNode = NetworkNode(
-                id=sat_id, 
-                allocated_link_count=4, 
-                inactive_links=set(), 
-                edges=[]
+            node: NetworkNode = NetworkNode(
+                id=sat_id, allocated_link_count=4, inactive_links=set(), edges=[]
             )
             network_adjacency_list.append(node)
     for plane in range(NUM_PLANES):
@@ -163,14 +77,46 @@ def generate_topology():
             # Modulo arithmetic creates the wraparound link.
             src = plane * SATS_PER_PLANE + sat_pos
             dst = plane * SATS_PER_PLANE + (sat_pos + 1) % SATS_PER_PLANE
-            network_adjacency_list[src].edges.append(Edge(src_sat_id=src, src_link_id=1, dest_sat_id=dst, dest_link_id=0, weight=1))
-            network_adjacency_list[dst].edges.append(Edge(src_sat_id=dst, src_link_id=0, dest_sat_id=src, dest_link_id=1, weight=1))
+            network_adjacency_list[src].edges.append(
+                Edge(
+                    src_sat_id=src,
+                    src_link_id=1,
+                    dest_sat_id=dst,
+                    dest_link_id=0,
+                    weight=1,
+                )
+            )
+            network_adjacency_list[dst].edges.append(
+                Edge(
+                    src_sat_id=dst,
+                    src_link_id=0,
+                    dest_sat_id=src,
+                    dest_link_id=1,
+                    weight=1,
+                )
+            )
 
             # Inter-plane links: connect matching positions in adjacent planes.
             src = plane * SATS_PER_PLANE + sat_pos
             dst = next_plane * SATS_PER_PLANE + sat_pos
-            network_adjacency_list[src].edges.append(Edge(src_sat_id=src, src_link_id=2, dest_sat_id=dst, dest_link_id=3, weight=2))
-            network_adjacency_list[dst].edges.append(Edge(src_sat_id=dst, src_link_id=3, dest_sat_id=src, dest_link_id=2, weight=2))
+            network_adjacency_list[src].edges.append(
+                Edge(
+                    src_sat_id=src,
+                    src_link_id=2,
+                    dest_sat_id=dst,
+                    dest_link_id=3,
+                    weight=2,
+                )
+            )
+            network_adjacency_list[dst].edges.append(
+                Edge(
+                    src_sat_id=dst,
+                    src_link_id=3,
+                    dest_sat_id=src,
+                    dest_link_id=2,
+                    weight=2,
+                )
+            )
 
     return network_adjacency_list
 
@@ -188,9 +134,8 @@ def calculate_positions():
 
         for sat_pos in range(SATS_PER_PLANE):
             # Angular position of satellite within its orbit.
-            theta = (
-                2 * math.pi * sat_pos / SATS_PER_PLANE
-                + 2 * math.pi * F * plane / (NUM_PLANES * SATS_PER_PLANE)
+            theta = 2 * math.pi * sat_pos / SATS_PER_PLANE + 2 * math.pi * F * plane / (
+                NUM_PLANES * SATS_PER_PLANE
             )
 
             # Circle in the orbital plane.
@@ -213,6 +158,7 @@ def calculate_positions():
 
     return positions
 
+
 def visualize_network(network_adjacency_list: list[NetworkNode], positions):
     """Draw the 3D satellite network."""
     fig = plt.figure(figsize=(12, 10))
@@ -221,7 +167,8 @@ def visualize_network(network_adjacency_list: list[NetworkNode], positions):
     # Draw Earth.
     u = np.linspace(0, 2 * math.pi, 20)
     v = np.linspace(0, math.pi, 20)
-    earth_radius = 6371 / (6371 + 550)   # ≈ 0.92
+    earth_radius = 0.6
+    # 6371 / (6371 + 550)  # ≈ 0.92
 
     x_earth = earth_radius * np.outer(np.cos(u), np.sin(v))
     y_earth = earth_radius * np.outer(np.sin(u), np.sin(v))
@@ -339,64 +286,83 @@ def dijkstras(network_adjacency_list: list[NetworkNode], start_node: int):
     mh = []
     heapq.heapify(mh)
     dist = [float("inf")] * len(network_adjacency_list)
-    path = {node.id: None for node in network_adjacency_list}
-    visited = [False] * len(network_adjacency_list) 
+    path: dict[int, int | None] = {node.id: None for node in network_adjacency_list}
+    visited = [False] * len(network_adjacency_list)
     dist[start_node] = 0
     heapq.heappush(mh, (0, start_node))
     while len(mh) != 0:
         top = heapq.heappop(mh)
         curr_dist = top[0]
-        curr_sat_id : int  = top[1]
-        if (not visited[curr_sat_id]):
+        curr_sat_id: int = top[1]
+        if not visited[curr_sat_id]:
             visited[curr_sat_id] = True
             for edge in network_adjacency_list[curr_sat_id].edges:
-                if ((curr_dist + edge.weight) < dist[edge.dest_sat_id]):
+                if (curr_dist + edge.weight) < dist[edge.dest_sat_id]:
                     dist[edge.dest_sat_id] = curr_dist + edge.weight
                     path[edge.dest_sat_id] = curr_sat_id
                     heapq.heappush(mh, (curr_dist + edge.weight, edge.dest_sat_id))
     return path
 
+
 def generate_fibs(network_adjacency_list: list[NetworkNode]):
     n = SATS_PER_PLANE * NUM_PLANES
-    fibs = [[0] * n for _ in range(n)]
+    fibs: list[list[int | None]] = [[None] * n for _ in range(n)]
     for node in network_adjacency_list:
         # Running Dijkstras from the dest node outwards for every node in the graph (many to one)
         next_hops_to_get_to_node = dijkstras(network_adjacency_list, node.id)
         for sat_id, fib in enumerate(fibs):
             # find ISL link id that maps to the next hop
-            next_hop_isl_link = list(filter(lambda x: x.dest_sat_id == next_hops_to_get_to_node[sat_id], network_adjacency_list[sat_id].edges))
-            fib[node.id] = None if len(next_hop_isl_link) == 0 else next_hop_isl_link[0].src_link_id
+            next_hop_isl_link = list(
+                filter(
+                    lambda x: x.dest_sat_id == next_hops_to_get_to_node[sat_id],
+                    network_adjacency_list[sat_id].edges,
+                )
+            )
+            fib[node.id] = (
+                None
+                if len(next_hop_isl_link) == 0
+                else next_hop_isl_link[0].src_link_id
+            )
     print(fibs)
     return fibs
 
+
 def export_fibs(fibs):
-    for i,fib in enumerate(fibs):
-        with open(FIB_EXPORT_DIRECTORY+"SAT"+str(i)+"_FIB.mem", "w", encoding="utf-8") as file:
+    for i, fib in enumerate(fibs):
+        with open(
+            FIB_EXPORT_DIRECTORY + "SAT" + str(i) + "_FIB.mem", "w", encoding="utf-8"
+        ) as file:
             file.truncate(0)
-        with open(FIB_EXPORT_DIRECTORY+"SAT"+str(i)+"_FIB.mem", "a+", encoding="utf-8") as file:
+        with open(
+            FIB_EXPORT_DIRECTORY + "SAT" + str(i) + "_FIB.mem", "a+", encoding="utf-8"
+        ) as file:
             for link in fib:
                 if link is None:
-                    file.write(f"{NUM_LINKS:08x}\n") # downlink sink is mapped to the NUM_LINKsth link_adapter_tx
+                    file.write(
+                        f"{NUM_LINKS:08x}\n"
+                    )  # downlink sink is mapped to the NUM_LINKsth link_adapter_tx
                 else:
-                    file.write(f"{link:08x}\n")        
+                    file.write(f"{link:08x}\n")
+
 
 def generate_satellite_tb_file(network_adjacency_list: list[NetworkNode]):
-    env = Environment(loader=FileSystemLoader('JinjaTemplates'))
+    env = Environment(loader=FileSystemLoader("JinjaTemplates"))
     template = env.get_template(JINJA_TEMPLATE_NAME)
     input = {
-        "input" :{
-            "constants":{
-                "NUM_LINKS": NUM_LINKS, 
+        "input": {
+            "constants": {
+                "NUM_LINKS": NUM_LINKS,
                 "NUM_PLANES": NUM_PLANES,
-                "SATS_PER_PLANE": SATS_PER_PLANE
+                "SATS_PER_PLANE": SATS_PER_PLANE,
             },
             "fib_dir": FIB_EXPORT_DIRECTORY,
-            "network_adjacency_list": network_adjacency_list
+            "network_adjacency_list": network_adjacency_list,
         }
     }
     tb = template.render(input)
     with open(TEMPLATE_EXPORT_LOCATION, "w", encoding="utf-8") as file:
         file.write(tb)
+
 
 if __name__ == "__main__":
     graph = generate_topology()
@@ -405,4 +371,4 @@ if __name__ == "__main__":
     export_fibs(generate_fibs(graph))
     visualize_network(graph, positions)
     print(f"Satellites: {len(graph)}")
-    print(f"Links: {len(graph)*4}")
+    print(f"Links: {len(graph) * 4}")

@@ -40,14 +40,17 @@ package packets_and_frames;
     // ============================================================
     parameter int RX_L3_BUFFER_DEPTH_BYTES = 16384;
     parameter int RX_L3_DESC_BUFFER_DEPTH = 64; // PACKETS
-    // [Start_Ptr, Desc_id, L3PacketLength, DestSat(7:0)
+    // [StartPtr, L3PacketLength, DestSat, DescId, BufferID]
     typedef struct packed {
         logic [$clog2(RX_L3_BUFFER_DEPTH_BYTES)-1:0] start_ptr;
         logic [$clog2(L3_MAX_SIZE_BYTES+1)-1:0] length;
         logic [(8*L3_DEST_SAT_SIZE_BYTES)-1:0] dest_sat;
         logic [$clog2(RX_L3_DESC_BUFFER_DEPTH)-1:0] desc_id;
-        logic [$clog2(NUM_LINKS)-1:0] buffer_id;
+        logic [$clog2(NUM_LINKS):0] buffer_id;
     } l3_packet_descriptor_t;
+    localparam DESC_WIDTH = $bits(
+        packets_and_frames::l3_packet_descriptor_t
+    );
 
     // ============================================================
     // L2 DEFINITIONS

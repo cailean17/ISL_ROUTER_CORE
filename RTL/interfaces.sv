@@ -27,7 +27,6 @@ interface laser_link_phy_if;
 endinterface
 
 interface link_adapter_rx_if;
-    logic [7:0] l3_packet_byte;
     logic       s_axis_tready;
     logic [7:0] s_axis_tdata;
     logic       s_axis_tvalid;

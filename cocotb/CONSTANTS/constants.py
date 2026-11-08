@@ -2,6 +2,7 @@ def clog2(n):
     """Matches SystemVerilog $clog2."""
     return (n - 1).bit_length()
 
+
 NUM_PLANES = 4
 NUM_LINKS = 4
 SATS_PER_PLANE = 4
@@ -46,6 +47,7 @@ RX_L3_BUFFER_DEPTH_BYTES = 16384  # must be a power of two
 RX_L3_DESC_BUFFER_DEPTH = 64  # must be a power of two
 RX_L3_BUFFER_PTR_W = clog2(RX_L3_BUFFER_DEPTH_BYTES)  # 14
 RX_L3_DESC_ID_W = clog2(RX_L3_DESC_BUFFER_DEPTH)  # 6
+RX_L3_BUFFER_ID_W = clog2(NUM_LINKS + 1)
 
 # L2 FRAME
 L2_SOF_SIZE_BYTES = 1

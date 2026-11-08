@@ -9,13 +9,13 @@ module downlink
     input   wire clk,
     input   wire reset,
 
-    // DOWNLINK<->router (descriptors whose FIB lookup said "local")
+    // DOWNLINK<->router
     input   logic s_axis_router_cmd_tvalid,
     input   packets_and_frames::l3_packet_descriptor_t s_axis_router_cmd_tdata,
     output  logic s_axis_router_cmd_tready,
 
     // DOWNLINK<->L3 buffer
-    // (command) DOWNLINK->L3 buffer (tdata carries buffer_id so the buffer arbiter can route it)
+    // (command) DOWNLINK->L3 buffer
     input   logic m_axis_tx_cmd_tready,
     output  packets_and_frames::l3_packet_descriptor_t m_axis_tx_cmd_tdata,
     output  logic m_axis_tx_cmd_tvalid,

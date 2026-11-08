@@ -13,12 +13,12 @@ module l3_buffer
     input  logic       s_axis_rx_tuser,   // meaningful on tlast: 1 = bad frame (CRC fail, timeout, bad length)
     output logic       s_axis_rx_tready,   // tied to 1'b1: the PHY can't be stalled
     // buffer<->router
-    output packets_and_frames::l3_packet_descriptor_t m_axis_pkt_desc_tdata,
+    output l3_packet_descriptor_t m_axis_pkt_desc_tdata,
     output logic m_axis_pkt_desc_tvalid,
     input  logic m_axis_pkt_desc_tready,
    // TX<->buffer
    // (command) TX->buffer
-    input  packets_and_frames::l3_packet_descriptor_t s_axis_tx_cmd_tdata,
+    input  l3_packet_descriptor_t s_axis_tx_cmd_tdata,
     input  logic s_axis_tx_cmd_tvalid,
     output logic s_axis_tx_cmd_tready,
    // (data) buffer->TX
@@ -30,24 +30,27 @@ module l3_buffer
 
 // DRAM PACKET DESCRIPTOR BUFFER
 // out-of-order servicing, in-order retirement
-(* ram_style = "distributed" *) packets_and_frames::l3_packet_descriptor_t pkt_desc_buffer [RX_L3_DESC_BUFFER_DEPTH];
+(* ram_style = "distributed" *) logic [DESC_WIDTH-1:0] pkt_desc_buffer [RX_L3_DESC_BUFFER_DEPTH];
 reg [$clog2(RX_L3_DESC_BUFFER_DEPTH)-1:0] pkt_desc_buffer_wr_ptr;
 reg [$clog2(RX_L3_DESC_BUFFER_DEPTH)-1:0] pkt_desc_buffer_rd_ptr;
-reg [$clog2(RX_L3_DESC_BUFFER_DEPTH)-1:0] pkt_desc_buffer_retire_ptr;
-reg [RX_L3_DESC_BUFFER_DEPTH-1:0] pkt_desc_buffer_ready_to_retire;
+(* max_fanout = 16 *) reg [$clog2(RX_L3_DESC_BUFFER_DEPTH)-1:0] pkt_desc_buffer_retire_ptr;
+reg [RX_L3_DESC_BUFFER_DEPTH-1:0] pkt_desc_buffer_queued_to_retire;
 reg [$clog2(RX_L3_DESC_BUFFER_DEPTH):0] unretired_cnt, pending_cnt;
-wire retire = pkt_desc_buffer_ready_to_retire[pkt_desc_buffer_retire_ptr];
+wire retire = pkt_desc_buffer_queued_to_retire[pkt_desc_buffer_retire_ptr];
 wire advertise = m_axis_pkt_desc_tvalid && m_axis_pkt_desc_tready;
+l3_packet_descriptor_t retiring_pkt_desc;
+reg retire_q;
+reg [$bits(retiring_pkt_desc.length)-1:0] retire_len_q;
 
 // SDP BRAM ACTUAL PACKET BUFFER
 (* ram_style = "block" *) reg [7:0] pkt_buffer [RX_L3_BUFFER_DEPTH_BYTES];
 reg [$clog2(RX_L3_BUFFER_DEPTH_BYTES)-1:0] pkt_buffer_wr_ptr;
 reg [$clog2(RX_L3_BUFFER_DEPTH_BYTES)-1:0] pkt_buffer_rd_ptr;
+reg [$clog2(RX_L3_BUFFER_DEPTH_BYTES)-1:0] pkt_buffer_rd_ptr_p1; // staggered + 1 alongside rd_ptr to present next address for BRAM read latency
 reg [$clog2(RX_L3_BUFFER_DEPTH_BYTES)-1:0] pkt_buffer_prev_wr_ptr;
 reg [$clog2(L3_MAX_SIZE_BYTES):0] pkt_buffer_curr_pkt_len_bytes;
 reg [$clog2(RX_L3_BUFFER_DEPTH_BYTES):0] pkt_buffer_bytes_used;
-reg [$clog2(RX_L3_BUFFER_DEPTH_BYTES):0] pkt_buffer_bytes_free;
-packets_and_frames::l3_packet_descriptor_t descriptor_wr;
+l3_packet_descriptor_t descriptor_wr;
 reg [(L3_DEST_SAT_SIZE_BYTES*8)-1:0] dest_sat_wr;
 assign descriptor_wr = '{start_ptr: pkt_buffer_prev_wr_ptr,
                            length: pkt_buffer_curr_pkt_len_bytes+1,
@@ -59,16 +62,11 @@ assign descriptor_wr = '{start_ptr: pkt_buffer_prev_wr_ptr,
 localparam logic [$clog2(RX_L3_BUFFER_DEPTH_BYTES):0] UPPER_ROOM_THRESHOLD = RX_L3_BUFFER_DEPTH_BYTES - L3_MAX_SIZE_BYTES;
 
 // Auxillary
-always_comb begin
-    // pkt_buffer_bytes_free = RX_L3_BUFFER_DEPTH_BYTES - pkt_buffer_bytes_used - pkt_buffer_curr_pkt_len_bytes;
-    s_axis_rx_tready = 1;
-end
+assign s_axis_rx_tready = 1;
 reg first_beat;
 wire no_desc_space = first_beat && (unretired_cnt == RX_L3_DESC_BUFFER_DEPTH);
 wire no_packet_space = first_beat && (pkt_buffer_bytes_used > UPPER_ROOM_THRESHOLD);
 wire packet_too_long = (pkt_buffer_curr_pkt_len_bytes == L3_MAX_SIZE_BYTES);
-// wire no_bytes_left = pkt_buffer_bytes_free == 0;
-// wire drop = (no_desc_space || no_bytes_left) && s_axis_rx_tvalid;
 wire drop = (no_desc_space || no_packet_space || packet_too_long) && s_axis_rx_tvalid;
 reg latched_drop;
 wire last = (s_axis_rx_tlast && s_axis_rx_tvalid);
@@ -100,10 +98,14 @@ always_ff @(posedge clk) begin
         pkt_buffer_bytes_used <= 0;
         dest_sat_wr <= 0;
         first_beat <= 1;
+        retire_q <= 0;
+        retire_len_q <= '0;
     end else begin
+        retire_q <= retire;
+        retire_len_q <= retiring_pkt_desc.length;
         pkt_buffer_bytes_used <= pkt_buffer_bytes_used
                     + (commit ? pkt_buffer_curr_pkt_len_bytes + 1 : 0)
-                    - (retire ? pkt_desc_buffer[pkt_desc_buffer_retire_ptr].length : 0);
+                    - (retire_q ? retire_len_q : 0);
         if (first_beat) begin
             pkt_buffer_prev_wr_ptr <= pkt_buffer_wr_ptr;
         end
@@ -152,13 +154,15 @@ always_ff @(posedge clk) begin
                 descriptor_rd <= s_axis_tx_cmd_tdata;
                 pkt_buffer_rd_ptr <= s_axis_tx_cmd_tdata.start_ptr;
                 bytes_left <= s_axis_tx_cmd_tdata.length;
-        end else begin
-            if(m_axis_tx_tvalid && m_axis_tx_tready) begin
-                pkt_buffer_rd_ptr <= pkt_buffer_rd_ptr+1;
-                bytes_left <= bytes_left-1;
-                if (on_last_byte_read) begin
-                    servicing_buffer_read <= 0;
-                end
+        end else if(servicing_buffer_read && !m_axis_tx_tvalid) begin
+            // first cycle on starting a new read
+            pkt_buffer_rd_ptr_p1 <= pkt_buffer_rd_ptr + 1;
+        end else if(m_axis_tx_tvalid && m_axis_tx_tready) begin
+            pkt_buffer_rd_ptr <= pkt_buffer_rd_ptr+1;
+            pkt_buffer_rd_ptr_p1 <= pkt_buffer_rd_ptr_p1 + 1;
+            bytes_left <= bytes_left-1;
+            if (on_last_byte_read) begin
+                servicing_buffer_read <= 0;
             end
         end
     end
@@ -171,7 +175,7 @@ reg [$clog2(RX_L3_BUFFER_DEPTH_BYTES)-1:0] pkt_buffer_port_a_addr;
 reg [7:0] pkt_buffer_port_a_data;
 reg pkt_buffer_port_a_en;
 always_comb begin
-    pkt_buffer_port_a_addr = (m_axis_tx_tready && m_axis_tx_tvalid) ? pkt_buffer_rd_ptr + 1 : pkt_buffer_rd_ptr;
+    pkt_buffer_port_a_addr = (m_axis_tx_tready && m_axis_tx_tvalid) ? pkt_buffer_rd_ptr_p1 : pkt_buffer_rd_ptr;
     pkt_buffer_port_a_en = servicing_buffer_read;
     m_axis_tx_tdata = pkt_buffer_port_a_data;
 end
@@ -197,8 +201,9 @@ always_ff @(posedge clk) begin
 end
 
 // BRAM PACKET DESCRIPTOR BUFFER LOGIC
-assign m_axis_pkt_desc_tdata = pkt_desc_buffer[pkt_desc_buffer_rd_ptr];
+assign m_axis_pkt_desc_tdata =      packets_and_frames::l3_packet_descriptor_t'(pkt_desc_buffer[pkt_desc_buffer_rd_ptr]);
 assign m_axis_pkt_desc_tvalid = (pending_cnt != 0);
+assign retiring_pkt_desc = pkt_desc_buffer[pkt_desc_buffer_retire_ptr];
 
 wire pkt_desc_buffer_rd = m_axis_pkt_desc_tready & m_axis_pkt_desc_tvalid;
 wire pkt_desc_buffer_wr = commit;
@@ -208,18 +213,18 @@ always_ff @(posedge clk) begin
         pkt_desc_buffer_wr_ptr <= 0;
         pkt_desc_buffer_rd_ptr <= 0;
         pkt_desc_buffer_retire_ptr <= 0;
-        pkt_desc_buffer_ready_to_retire <= 0;
+        pkt_desc_buffer_queued_to_retire <= 0;
         unretired_cnt <= 0;
         pending_cnt <= 0;
     end else begin
-        unretired_cnt <= unretired_cnt + commit - retire;     // committed, not yet retired
+        unretired_cnt <= unretired_cnt + commit - retire_q;     // committed, not yet retired
         pending_cnt   <= pending_cnt   + commit - advertise;   // committed, not yet advertised
         if (read_done) begin
-            pkt_desc_buffer_ready_to_retire[descriptor_rd.desc_id] <= 1;
+            pkt_desc_buffer_queued_to_retire[descriptor_rd.desc_id] <= 1;
         end
-        if (pkt_desc_buffer_ready_to_retire[pkt_desc_buffer_retire_ptr]) begin
+        if (pkt_desc_buffer_queued_to_retire[pkt_desc_buffer_retire_ptr]) begin
             pkt_desc_buffer_retire_ptr <= pkt_desc_buffer_retire_ptr + 1;
-            pkt_desc_buffer_ready_to_retire[pkt_desc_buffer_retire_ptr] <= 0;
+            pkt_desc_buffer_queued_to_retire[pkt_desc_buffer_retire_ptr] <= 0;
         end
         case ({pkt_desc_buffer_rd, pkt_desc_buffer_wr})
             2'b00: begin
