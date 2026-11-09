@@ -5,6 +5,7 @@ on:
     branches: [ master ]
     paths:
      - "cocotb/**/coverage.info"
+     - ".github/workflows/**"
 
 jobs:
   generate-badges:
