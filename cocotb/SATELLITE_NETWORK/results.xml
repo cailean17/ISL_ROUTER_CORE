@@ -1,6 +1,6 @@
 <testsuites name="results">
   <testsuite name="all" package="all">
-    <property name="random_seed" value="1793395299" />
-    <testcase name="constrained_random_satellite_network_scoreboard" classname="satellite_network_coco_tb" file="/mnt/c/Users/Caile/Documents/ISL_Router/cocotb/SATELLITE_NETWORK/satellite_network_coco_tb.py" lineno="348" time="338.8949294090271" sim_time_ns="500005.0" ratio_time="1475.398291948246" />
+    <property name="random_seed" value="1794261264" />
+    <testcase name="constrained_random_satellite_network_scoreboard" classname="satellite_network_coco_tb" file="/mnt/c/Users/Caile/Documents/ISL_Router/cocotb/SATELLITE_NETWORK/satellite_network_coco_tb.py" lineno="346" time="672.7773621082306" sim_time_ns="500005.0" ratio_time="743.1953394406329" />
   </testsuite>
 </testsuites>
