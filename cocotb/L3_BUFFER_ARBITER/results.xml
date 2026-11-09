@@ -1,8 +1,8 @@
 <testsuites name="results">
   <testsuite name="all" package="all">
-    <property name="random_seed" value="1794255605" />
-    <testcase name="single_request_arbitration_test" classname="l3_buffer_arbiter_coco_tb" file="/mnt/c/Users/Caile/Documents/ISL_Router/cocotb/L3_BUFFER_ARBITER/l3_buffer_arbiter_coco_tb.py" lineno="221" time="45.09292483329773" sim_time_ns="1901347.5" ratio_time="42165.09589983389" />
-    <testcase name="max_request_arbitration_test" classname="l3_buffer_arbiter_coco_tb" file="/mnt/c/Users/Caile/Documents/ISL_Router/cocotb/L3_BUFFER_ARBITER/l3_buffer_arbiter_coco_tb.py" lineno="269" time="15.622376441955566" sim_time_ns="429497.50000000023" ratio_time="27492.456195495244" />
-    <testcase name="constrained_random_request_arbitration_test" classname="l3_buffer_arbiter_coco_tb" file="/mnt/c/Users/Caile/Documents/ISL_Router/cocotb/L3_BUFFER_ARBITER/l3_buffer_arbiter_coco_tb.py" lineno="315" time="23.705268383026123" sim_time_ns="404412.5" ratio_time="17060.0262129736" />
+    <property name="random_seed" value="1794258101" />
+    <testcase name="single_request_arbitration_test" classname="l3_buffer_arbiter_coco_tb" file="/mnt/c/Users/Caile/Documents/ISL_Router/cocotb/L3_BUFFER_ARBITER/l3_buffer_arbiter_coco_tb.py" lineno="221" time="44.358686447143555" sim_time_ns="1960317.5" ratio_time="44192.41544349727" />
+    <testcase name="max_request_arbitration_test" classname="l3_buffer_arbiter_coco_tb" file="/mnt/c/Users/Caile/Documents/ISL_Router/cocotb/L3_BUFFER_ARBITER/l3_buffer_arbiter_coco_tb.py" lineno="269" time="13.520667791366577" sim_time_ns="380482.50000000023" ratio_time="28140.806790841478" />
+    <testcase name="constrained_random_request_arbitration_test" classname="l3_buffer_arbiter_coco_tb" file="/mnt/c/Users/Caile/Documents/ISL_Router/cocotb/L3_BUFFER_ARBITER/l3_buffer_arbiter_coco_tb.py" lineno="315" time="21.365339517593384" sim_time_ns="347987.5" ratio_time="16287.478123783063" />
   </testsuite>
 </testsuites>
