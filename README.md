@@ -2,21 +2,40 @@
 
 ### **Overview:** 
 - A passion-project to develop efficient, intuitive microarchitecture for a router switch core on LEO Satellites.
-- Fully implemented and closed @ $f_{c}=175\text{ MHz}$ on Artix-7 XC7A200T-1CSG324C Speed-Grade: -1 with theoretical 1.4Gbps throughput (Params: **NUM_LINKS** = 2 (2 ISL Links ~ 3 Link Adapter Tx and Rx (+ 1 for simulated uplink and downlink) ~ 3 L3 Buffers). Includes pathways for 2x and 4x throughput advancement provided bus-width scaling.  
+- Fully implemented and closed @ $f_{c}=175\text{ MHz}$ on Artix-7 XC7A200T-1CSG324C Speed-Grade: -1 with theoretical 1.4Gbps throughput (Params: **NUM_LINKS** = 2 (2 ISL Links ~ 3 Link Adapter Tx and Rx (+ 1 for simulated uplink and downlink) ~ 3 L3 Buffers). Includes pathways for 2x and 4x throughput advancement provided bus-width scaling.
+- See [Microarchitecture Highlights](#microarchitecture-highlights)
 
 ### **Design Verification:** 
 - Each module is verified using [CocoTB](https://www.cocotb.org/) & [Verilator](https://www.veripool.org/verilator/) with self-checking testbenches following Directed, and Constrained Random Verification/Score-boarding principles
 - Global 90% Functional Coverage
-- All testbenches are located under `./cocotb/{module_name}` alongside LCOV HTML coverage reports
-  
-| RTL Module | Line Coverage Status |
-|---|---|
-| `CRC` |![CRC Coverage](../badges/project-badges/CRC-coverage.svg)|
-| `link_adapter_rx` |![LINK_ADAPTER_RX Coverage](../badges/project-badges/LINK_ADAPTER_RX-coverage.svg)|
-| `l3_buffer` |![L3_BUFFER Coverage](../badges/project-badges/L3_BUFFER-coverage.svg)|
-| `crossbar_arbiter` |![CROSSBAR_ARBITER Coverage](../badges/project-badges/CROSSBAR_ARBITER-coverage.svg)|
-| `link_adapter_tx` |![LINK_ADAPTER_TX Coverage](../badges/project-badges/LINK_ADAPTER_TX-coverage.svg)|
-| `l3_buffer_arbiter` |![L3_BUFFER_ARBITER Coverage](../badges/project-badges/L3_BUFFER_ARBITER-coverage.svg)|
+- All testbenches are located under `./cocotb/{module_name}` alongside LCOV HTML coverage report
+- E2E Satellite Network Scoreboarding Test with Generated Satellite Topologies (Inter and Cross Orbital Planes).
+  - Parameters: (Number of Planes, Number of Sats per Plane).
+  - Jinja Templates for Dynamic Test-bench generation from network topology
+ 
+
+| RTL Module | Line Coverage Status | TestBench |
+|---|---|---|
+| `CRC` |![CRC Coverage](../badges/project-badges/CRC-coverage.svg)|[Test Bench](./cocotb/CRC/crc_coco_tb.py)|
+| `link_adapter_rx` |![LINK_ADAPTER_RX Coverage](../badges/project-badges/LINK_ADAPTER_RX-coverage.svg)|[Test Bench](./cocotb/LINK_ADAPTER_RX/link_adapter_rx_coco_tb.py)|
+| `l3_buffer` |![L3_BUFFER Coverage](../badges/project-badges/L3_BUFFER-coverage.svg)|[Test Bench](./cocotb/L3_BUFFER/l3_buffer_coco_tb.py)|
+| `crossbar_arbiter` |![CROSSBAR_ARBITER Coverage](../badges/project-badges/CROSSBAR_ARBITER-coverage.svg)|[Test Bench](./cocotb/CROSSBAR_ARBITER/crossbar_arbiter_coco_tb.py)|
+| `link_adapter_tx` |![LINK_ADAPTER_TX Coverage](../badges/project-badges/LINK_ADAPTER_TX-coverage.svg)|[Test Bench](./cocotb/LINK_ADAPTER_TX/link_adapter_tx_coco_tb.py)|
+| `l3_buffer_arbiter` |![L3_BUFFER_ARBITER Coverage](../badges/project-badges/L3_BUFFER_ARBITER-coverage.svg)|[Test Bench](./cocotb/L3_BUFFER_ARBITER/l3_buffer_arbiter_coco_tb.py)|
+
+#### **Full E2E Satellite Network Test (4 Orbital Planes, 4 Sats per Plane = 16 Sats):** ![SATELLITE_NETWORK_Coverage](../badges/project-badges/SATELLITE_NETWORK-coverage.svg)  [Test Bench](./cocotb/SATELLITE_NETWORK/satellite_network_coco_tb.py)
+| Metric | Result |
+|---|---:|
+| Simulation Duration | 500,005 ns (500.005 µs) |
+| Average Network Traversal Latency | 47,169.35 ns (47.17 µs) |
+| Worst Network Traversal Latency | 125,847.50 ns (125.85 µs) |
+| Worst-Latency Packet | 1,471 bytes (SrcSat 15 → DestSat 6) |
+| Global Network Throughput | 14.58 Gbps |
+| Total Packets Routed | 1,600 |
+| Total Packets Successfully Received at Dest | 1,124 (70.25%) |
+| Total Bytes Succesfully Received at Dest | 885,690 bytes |
+| Total Packets Dropped (L3 Buffer Full Events @ 64 Stored Packets (16KB) | 476 (29.75%) |
+
   
 ### **Implementation & Usage Report:**
 **Target device:** AMD/Xilinx Artix-7 XC7A200T-SBG484-1
@@ -145,10 +164,10 @@ The router is implemented as a modular, parameterized SystemVerilog design. Each
 
 - **Decoupled packet processing:** RX adapters, packet buffers, arbitration logic, and TX adapters operate independently through AXI-stream valid/ready handshakes.
 - **BRAM-backed packet storage:** Packet payloads are stored separately from descriptors, reducing the amount of wide datapath state required in the control logic. Only descriptor-wide buses are utilized for packet routing decisions. On arbitration handshakes, AXI-streams facilitate   byte-streams of the underlying packet using the descriptor pointers into explicit L3 Buffers.
-- <a id="anchor1"></a>**In-order descriptor advertisement, out-of-order servicing, in-order retirement:** L3 buffers advertise packet descriptors to the crossbar in ingress commit order, allowing independent egress adapters to service requests concurrently and request L3 packet byte-streams out of order (w.r.t to the ingress commit order). Descriptor slots are tracked using `desc_id`, ensuring packets are retired in their original allocation order once their corresponding reads complete, maintaining ring-buffer invaraints.
+- <a id="anchor1"></a>**In-order descriptor advertisement, out-of-order servicing, in-order retirement:** L3 buffers advertise packet descriptors to the crossbar in ingress commit order, allowing independent egress adapters to service requests concurrently while simulatenously requesting L3 packet byte-streams out of order (w.r.t to the ingress commit order). Descriptor slots are tracked using `desc_id`, ensuring packets are retired in their original allocation order once their corresponding reads complete, maintaining ring-buffer invaraince.
 - **Multi-egress buffer arbiter:** Each L3 buffer can route newly committed descriptors to the determined next-hop egress adpater, allowing flexible routing across the switch fabric. 
-- **Multi-buffer crossbar arbiter:** Each egress adapter can request packets from multiple ingress buffers, allowing flexible routing across the switch fabric.
-- **Dynamic forwarding:** Per-satellite FIB entries determine the appropriate egress adapter for each destination satellite.
+- **Multi-buffer crossbar arbiter:** Each egress adapter can request packets using forwarded descriptors from multiple ingress buffers, allowing flexible routing across the switch fabric.
+- **Dynamic forwarding:** Per-satellite FIB entries determine the appropriate egress adapter for each destination satellite. 
 - **Parameterized architecture:** Link count, packet sizes, buffer depths, descriptor widths, and related datapath dimensions are statically derived from shared parameters.
 
 
