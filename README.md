@@ -2,7 +2,8 @@
 
 ### **Overview:** 
 - A passion-project to develop efficient, intuitive microarchitecture for a router switch core on LEO Satellites.
-- Fully implemented and closed @ $f_{c}=175\text{ MHz}$ on Artix-7 XC7A200T-1CSG324C Speed-Grade: -1 with theoretical 1.4Gbps throughput (Params: **NUM_LINKS** = 2 (2 ISL Links ~ 3 Link Adapter Tx and Rx (+ 1 for simulated uplink and downlink) ~ 3 L3 Buffers). Includes pathways for 2x and 4x throughput advancement provided bus-width scaling.
+- Fully implemented and closed @ $f_{c}=175\text{ MHz}$ on Artix-7 XC7A200T-1CSG324C Speed-Grade: -1 with theoretical 1.4Gbps throughput (Params: **NUM_LINKS** = 2 (2 ISL Links ~ 3 Link Adapter Tx and Rx (+ 1 for simulated uplink and downlink) ~ 3 L3 Buffers).
+- Includes pathways for 2x and 4x throughput advancement provided bus-width scaling.
 - See [Microarchitecture Highlights](#microarchitecture-highlights)
 
 ### **Design Verification:** 
