@@ -14,7 +14,7 @@ jobs:
 
     strategy:
       matrix:
-        dir: [ "CRC", "CROSSBAR_ARBITER", "L3_BUFFER_ARBITER", "L3_BUFFER", "LINK_ADAPTER_RX", "LINK_ADAPTER_TX"]
+        dir: [ "CRC", "CROSSBAR_ARBITER", "L3_BUFFER_ARBITER", "L3_BUFFER", "LINK_ADAPTER_RX", "LINK_ADAPTER_TX", "SATELLITE_NETWORK"]
 
     steps:
       - name: Checkout Code
