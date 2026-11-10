@@ -1,9 +1,10 @@
 ## Custom RTL Router Core for LEO Satellite Networks with ISL PHY
+<img width="547" height="278" alt="image" src="https://github.com/user-attachments/assets/8d14e420-5633-4908-8e9e-3c6875b59833" />
 
 ### **Overview:** 
 - A passion-project to develop efficient, intuitive microarchitecture for a router switch core on LEO Satellites.
-- Fully implemented and closed @ $f_{c}=175\text{ MHz}$ on Artix-7 XC7A200T-1CSG324C Speed-Grade: -1 with theoretical 1.4Gbps throughput (Params: **NUM_LINKS** = 2 (2 ISL Links ~ 3 Link Adapter Tx and Rx (+ 1 for simulated uplink and downlink) ~ 3 L3 Buffers).
-- Includes pathways for 2x and 4x throughput advancement provided bus-width scaling.
+- Fully implemented and closed @ $f_{c}=200\text{ MHz}$ on Kintex-7 XC7K160T-FBG676 Speed-Grade: -2 with theoretical 1.6Gbps throughput (Params: **NUM_LINKS** = 2 (2 ISL Links ~ 3 Link Adapter Tx and Rx (+ 1 for simulated uplink and downlink) ~ 3 L3 Buffers).
+- Includes pathways for 2x and 4x throughput advancement provided bus-width scaling. Current packet bus width is 1 Byte.
 - See [Microarchitecture Highlights](#microarchitecture-highlights)
 
 ### **Design Verification:** 
@@ -39,16 +40,15 @@
 
   
 ### **Implementation & Usage Report:**
-**Target device:** AMD/Xilinx Artix-7 XC7A200T-SBG484-1
+**Target device:** AMD/Xilinx Artix-7 Kintex-7 XC7K160T-FBG676 Speed Grade: -2
 
 | Resource | Used | Available | Utilization |
 |---|---:|---:|---:|
 | Slice LUTs | 1,198 | 134,600 | 0.89% |
-| LUTs as Logic | 1,051 | 134,600 | 0.78% |
+| LUTs as Logic | 1,198 | 134,600 | 0.89% |
 | LUTs as Memory | 147 | 46,200 | 0.32% |
 | Slice Registers (FFs) | 816 | 269,200 | 0.30% |
 | Block RAM Tiles (RAMB36) | 9 | 365 | 2.47% |
-| DSP Slices | 0 | 740 | 0.00% |
 | Bonded IOBs | 34 | 285 | 11.93% |
 | BUFG | 2 | 32 | 6.25% |
 | MMCM | 1 | 10 | 10.00% |
