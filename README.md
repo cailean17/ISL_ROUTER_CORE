@@ -3,13 +3,13 @@
 
 ### **Overview:** 
 - A passion-project to develop efficient, intuitive microarchitecture for a router switch core on LEO Satellites.
-- Fully implemented and closed @ $f_{c}=200\text{ MHz}$ on Kintex-7 XC7K160T-FBG676 Speed-Grade: -2 with theoretical 1.6Gbps throughput (Params: **NUM_LINKS** = 2 (2 ISL Links ~ 3 Link Adapter Tx and Rx (+ 1 for simulated uplink and downlink) ~ 3 L3 Buffers).
+- Fully implemented and closed @ $f_{c}=200\text{ MHz}$ on Kintex-7 XC7K160T-FBG676 Speed-Grade: -2 with theoretical 1.6Gbps throughput (Params: **NUM_LINKS** = 2. This corresponds to ~ 3 Link Adapter Tx and Rx (+ 1 for simulated uplink and downlink) ~ 3 L3 Buffers).
 - Includes pathways for 2x and 4x throughput advancement provided bus-width scaling. Current packet bus width is 1 Byte.
 - See [Microarchitecture Highlights](#microarchitecture-highlights)
 
 ### **Design Verification:** 
 - Each module is verified using [CocoTB](https://www.cocotb.org/) & [Verilator](https://www.veripool.org/verilator/) with self-checking testbenches following Directed, and Constrained Random Verification/Score-boarding principles
-- Global 90% Functional Coverage
+- Global 97% Functional Coverage
 - All testbenches are located under `./cocotb/{module_name}` alongside LCOV HTML coverage report
 - E2E Satellite Network Scoreboarding Test with Generated Satellite Topologies (Inter and Cross Orbital Planes).
   - Parameters: (Number of Planes, Number of Sats per Plane).
