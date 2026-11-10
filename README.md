@@ -32,7 +32,7 @@
 | Average Network Traversal Latency | 47,169.35 ns (47.17 µs) |
 | Worst Network Traversal Latency | 125,847.50 ns (125.85 µs) |
 | Worst-Latency Packet | 1,471 bytes (SrcSat 15 → DestSat 6) |
-| Global Network Throughput | 14.58 Gbps |
+| Aggregate Simulated Global Network Throughput | 14.58 Gbps |
 | Total Packets Routed | 1,600 |
 | Total Packets Successfully Received at Dest | 1,124 (70.25%) |
 | Total Bytes Succesfully Received at Dest | 885,690 bytes |
